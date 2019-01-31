@@ -1,2 +1,2 @@
-# Discrimination-in-Relational-Classification
+# Discrimination in Relational Classification
 Data-driven discrimination in relational classification
