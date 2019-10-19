@@ -1,6 +1,8 @@
 # Discrimination in Relational Classification
 Data-driven discrimination in relational classification
 
+[![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master)
+
 #### [ 2019 ]
 work-in-progess...
 
