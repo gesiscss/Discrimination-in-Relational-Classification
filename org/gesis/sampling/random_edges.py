@@ -17,6 +17,7 @@ class RandomEdges(object):
         self.G = G
         self.pseeds = pseeds        
         self.nseeds = int(round(self.G.number_of_nodes() * pseeds))
+        np.random.seed(None)
         
     def extract_subgraph(self, **kwargs):
         '''
