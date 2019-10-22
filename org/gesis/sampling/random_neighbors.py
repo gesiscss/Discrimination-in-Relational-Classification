@@ -6,7 +6,7 @@ import numpy as np
 ############################################
 # Class
 ############################################
-class RandomEdges(object):
+class RandomNeighbors(object):
 
     def __init__(self, G, pseeds):
         '''
@@ -22,22 +22,37 @@ class RandomEdges(object):
         '''
         Creates a subgraph from G based on the sampling technique
         '''
-        edges = self.get_random_edges()
+        edges = self.get_random_nodes_and_neighbors()
         return self.G.edge_subgraph(edges).copy()
     
-    def get_random_edges(self):
+    def get_random_nodes_and_neighbors(self):
         '''
         Randomly selects (pseeds * N) nodes
         returns a list of nodes
         '''
-        edges = list(self.G.edges())
-        np.random.shuffle(edges)
+        nodes = list(self.G.nodes())
+        np.random.shuffle(nodes)
+        edges = []
         seeds = set()
-        counter = 0
-        while len(seeds) < self.nseeds:
-            seeds |= set(edges[counter])
-            counter += 1
-        return edges[:counter]
+        for ni in nodes:
+            
+            if len(seeds) >= self.nseeds:
+                break
+                
+            neighbors = list(self.G.neighbors(ni))
+            
+            if len(seeds)+len(neighbors)+1 > self.nseeds:
+                np.random.shuffle(neighbors)
+                n = self.nseeds-len(seeds)-1
+                if n>0:
+                    neighbors = neighbors[:n]
+                else:
+                    break
+                
+            edges.extend([(ni,nj) for nj in neighbors])
+            seeds |= set(neighbors) | set([ni])
+            
+        return edges
     
         
             

@@ -7,6 +7,9 @@ import networkx as nx
 # Local dependencies
 ############################################
 from org.gesis.sampling.random_nodes import RandomNodes
+from org.gesis.sampling.random_neighbors import RandomNeighbors
+from org.gesis.sampling.random_edges import RandomEdges
+from org.gesis.sampling.partial_crawls import PartialCrawls
 
 ############################################
 # Constants
@@ -42,7 +45,13 @@ class Sampling(object):
             raise Exception("pseeds value exception: {}".format(self.pseeds))
             
         if self.method == RANDOM_NODES:
-            self.Gseeds = RandomNodes(self.G, self.pseeds).extract_subgraph()
+            self.Gseeds = RandomNodes(G=self.G, pseeds=self.pseeds).extract_subgraph()
+        elif self.method == RANDOM_NEIGHBORS:
+            self.Gseeds = RandomNeighbors(G=self.G, pseeds=self.pseeds).extract_subgraph()
+        elif self.method == RANDOM_EDGES:
+            self.Gseeds = RandomEdges(G=self.G, pseeds=self.pseeds).extract_subgraph()
+        elif self.method == PARTIAL_CRAWLS:
+            self.Gseeds = PartialCrawls(G=self.G, pseeds=self.pseeds, sn=kwargs['sn']).extract_subgraph()
         else:
             raise Exception("sampling method does not exist: {}".format(self.method))
         
