@@ -41,7 +41,11 @@ class PartialCrawls(object):
         self.S = nodes[:super_node_size]
     
     def get_edges_from_tours(self):
-        
+        '''
+        Sorts nodes in super node proportional to their edges outside the super node.
+        Perfoms random walks from/to super node until collecting (pseeds * N) nodes
+        returns a list od edges
+        '''
         # proportional to the number of edges out of the super node
         sorted_S = {ni:len([nj for nj in self.G.neighbors(ni) if nj not in self.S]) for ni in self.G.nodes()}
         sorted_S = sorted(sorted_S.items(), key=operator.itemgetter(1), reverse=True)

@@ -10,13 +10,14 @@ from org.gesis.sampling.random_nodes import RandomNodes
 from org.gesis.sampling.random_neighbors import RandomNeighbors
 from org.gesis.sampling.random_edges import RandomEdges
 from org.gesis.sampling.partial_crawls import PartialCrawls
+from org.gesis.sampling.degree_rank import DegreeRank
 
 ############################################
 # Constants
 ############################################
 RANDOM_NODES = "nodes"
 RANDOM_EDGES = "nedges"
-DEGREE_RANKING = "degree"
+DEGREE_RANK = "degree"
 RANDOM_NEIGHBORS = "neighbors"
 PARTIAL_CRAWLS = "partial_crawls"
 
@@ -50,6 +51,8 @@ class Sampling(object):
             self.Gseeds = RandomNeighbors(G=self.G, pseeds=self.pseeds).extract_subgraph()
         elif self.method == RANDOM_EDGES:
             self.Gseeds = RandomEdges(G=self.G, pseeds=self.pseeds).extract_subgraph()
+        elif self.method == DEGREE_RANK:
+            self.Gseeds = DegreeRank(G=self.G, pseeds=self.pseeds).extract_subgraph()
         elif self.method == PARTIAL_CRAWLS:
             self.Gseeds = PartialCrawls(G=self.G, pseeds=self.pseeds, sn=kwargs['sn']).extract_subgraph()
         else:

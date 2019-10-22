@@ -27,7 +27,7 @@ class RandomEdges(object):
     
     def get_random_edges(self):
         '''
-        Randomly selects (pseeds * N) nodes
+        Randomly selects edges until covering (pseeds * N) nodes
         returns a list of nodes
         '''
         edges = list(self.G.edges())

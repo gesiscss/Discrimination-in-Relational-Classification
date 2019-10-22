@@ -27,7 +27,7 @@ class RandomNeighbors(object):
     
     def get_random_nodes_and_neighbors(self):
         '''
-        Randomly selects (pseeds * N) nodes
+        Shuffles the list of nodes, and selects edges of selected node until (pseeds * N) nodes
         returns a list of nodes
         '''
         nodes = list(self.G.nodes())
