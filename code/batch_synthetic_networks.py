@@ -5,8 +5,14 @@ from org.gesis.sampling.sampling import Sampling
 from org.gesis.local.local import Local
 from org.gesis.relational.relational import Relational
 from org.gesis.inference.inference import Inference
+from org.gesis.inference.inference import is_inference_done
 
 def run(params):
+
+    if is_inference_done(params.output, params.datafn, params.pseeds, params.epoch):
+        print("Already done!")
+        return
+
     ### 1. Input network
     print("\n*** Network ***")
     net = Network()

@@ -22,6 +22,33 @@ from utils.io import write_pickle
 RELAXATION = "relaxation"
 
 ############################################
+# Functions
+############################################
+
+def is_inference_done(root, datafn, pseeds, postfix):
+    output = os.path.join(root, os.path.basename(datafn).replace(".gpickle", ""))
+    print(output)
+
+    f1 = get_graph_filename(output, pseeds, postfix)
+    f2 = get_evaluation_filename(output, pseeds, postfix)
+
+    print(f1)
+    print(f2)
+    print(os.path.exists(f1) and os.path.exists(f2))
+
+    return os.path.exists(f1) and os.path.exists(f2)
+
+def get_graph_filename(output, pseeds, postfix):
+    if pseeds < 1:
+        pseeds = int(round(pseeds*100,1))
+    return os.path.join(output,"P{}_graph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+
+def get_evaluation_filename(output, pseeds, postfix):
+    if pseeds < 1:
+        pseeds = int(round(pseeds*100,1))
+    return os.path.join(output,"P{}_evaluation{}.pickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+
+############################################
 # Class
 ############################################
 class Inference(object):
@@ -125,7 +152,7 @@ class Inference(object):
         pseeds = int(pseeds * 100) if pseeds <= 1.0 else pseeds
 
         # graph (with ci, xi, and seed info)
-        fn = os.path.join(output,"P{}_graph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+        fn = get_graph_filename(output, pseeds, postfix)
         write_gpickle(self.G, fn)
 
         # evaluation
@@ -141,7 +168,7 @@ class Inference(object):
         obj['bias'] = self.bias
         obj['lag'] = self.duration
 
-        fn = os.path.join(output,"P{}_evaluation{}.pickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+        fn = get_evaluation_filename(output, pseeds, postfix)
         write_pickle(obj, fn)
 
         # going back to default current loc
