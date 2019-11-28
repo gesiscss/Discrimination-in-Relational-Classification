@@ -27,15 +27,8 @@ RELAXATION = "relaxation"
 
 def is_inference_done(root, datafn, pseeds, postfix):
     output = os.path.join(root, os.path.basename(datafn).replace(".gpickle", ""))
-    print(output)
-
     f1 = get_graph_filename(output, pseeds, postfix)
     f2 = get_evaluation_filename(output, pseeds, postfix)
-
-    print(f1)
-    print(f2)
-    print(os.path.exists(f1) and os.path.exists(f2))
-
     return os.path.exists(f1) and os.path.exists(f2)
 
 def get_graph_filename(output, pseeds, postfix):
