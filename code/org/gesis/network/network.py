@@ -9,6 +9,7 @@ import networkx as nx
 from org.gesis.network.generate_homophilic_graph_symmetric import homophilic_barabasi_albert_graph as BAH
 from utils.estimator import get_similitude
 from utils.estimator import get_degrees
+from utils.io import load_gpickle
 
 ############################################
 # Constants
@@ -20,7 +21,7 @@ BARABASI_ALBERT_HOMOPHILY = "BAH"
 ############################################
 class Network(object):
 
-    def __init__(self, kind):
+    def __init__(self, kind=None):
         '''
         Initializes the network object
         - kind: type of network
@@ -53,6 +54,14 @@ class Network(object):
                                                                                              round(kM,1))
         else:
             raise Exception("{}: network type does not exist.".format(self.kind))
+
+    def load(self, datafn):
+        '''
+        Loads gpickle graph into G
+        :param datafn:
+        :return:
+        '''
+        self.G = load_gpickle(datafn)
 
     def info(self):
         '''

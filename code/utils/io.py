@@ -31,3 +31,13 @@ def write_gpickle(graph, fn):
         print("{} saved!".format(fn))
     except Exception as ex:
         print(ex)
+
+def load_gpickle(datafn):
+    if os.path.exists(datafn):
+        try:
+            graph = nx.read_gpickle(datafn)
+        except Exception as ex:
+            print(ex)
+    else:
+        raise FileNotFoundError("{} does not exist.".format(datafn))
+    return graph

@@ -114,7 +114,10 @@ class Inference(object):
 
         # create folder for network and pseeds
         create_folder(root,True)
-        output = self.G.graph['fullname']
+        try:
+            output = self.G.graph['fullname']
+        except:
+            output = self.G.graph['name']
         create_folder(output)
 
         # pseeds as percentage
@@ -122,7 +125,7 @@ class Inference(object):
         pseeds = int(pseeds * 100) if pseeds <= 1.0 else pseeds
 
         # graph (with ci, xi, and seed info)
-        fn = os.path.join(output,"P{}_graph.gpickle".format(pseeds))
+        fn = os.path.join(output,"P{}_graph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
         write_gpickle(self.G, fn)
 
         # evaluation
@@ -138,7 +141,7 @@ class Inference(object):
         obj['bias'] = self.bias
         obj['lag'] = self.duration
 
-        fn = os.path.join(output,"P{}_evaluation.pickle".format(pseeds))
+        fn = os.path.join(output,"P{}_evaluation{}.pickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
         write_pickle(obj, fn)
 
         # going back to default current loc
