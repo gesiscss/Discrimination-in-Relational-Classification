@@ -48,6 +48,7 @@ def init_batch():
 
     parser.add_argument('-ignoreInt', action='store',
                         dest='ignoreInt',
+                        type=int,
                         help='Class value to ignore (as int).')
 
     parser.add_argument('-output', action='store',
