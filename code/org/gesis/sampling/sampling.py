@@ -67,7 +67,8 @@ class Sampling(object):
         self.Gseeds.graph['pseeds'] = self.pseeds
         self.Gseeds.graph['method'] = self.method
         nx.set_node_attributes(G=self.G, name='seed', values={n:n in self.Gseeds for n in self.G.nodes()})
-    
+        self.Gseeds.graph['min_degree'] = min([d for n, d in self.Gseeds.degree()])
+
     def info(self):
         '''
         Prints a summary of the training sample subgraph, including its attributes.
