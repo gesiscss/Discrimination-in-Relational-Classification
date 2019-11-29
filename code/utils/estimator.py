@@ -27,12 +27,12 @@ def get_degrees(graph):
 
 def prior_learn(Gseeds):
     tmp = Counter([Gseeds.node[n][Gseeds.graph['class']] for n in Gseeds.nodes()])
-    minority = tmp.most_common(2)[1]
-    majority = tmp.most_common(2)[0]
 
-    prior = pd.Series(index=[majority[0], minority[0]])
-    prior.loc[majority[0]] = majority[1] / Gseeds.number_of_nodes()
-    prior.loc[minority[0]] = minority[1] / Gseeds.number_of_nodes()
+    prior = pd.Series(index=Gseeds.graph['labels'])
+    prior.loc[Gseeds.graph['labels'][0]] = tmp[Gseeds.graph['labels'][0]] + 1
+    prior.loc[Gseeds.graph['labels'][1]] = tmp[Gseeds.graph['labels'][1]] + 1
+
+    prior /= prior.sum()
 
     return prior
 
