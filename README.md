@@ -4,8 +4,9 @@ Data-driven discrimination in relational classification
 ## Examples
 | Description | Launch in Binder |
 | :---: | :---: |
-| Collective Classification on Synthetic Networks | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fexample_synthetic_network.ipynb) |
-| Collective Classification on Real-World Networks | - |
+| Collective Classification on a **New** Synthetic Network | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fexample_synthetic_new_network.ipynb) |
+| Collective Classification on a **Loaded** Synthetic Network | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fexample_synthetic_load_network.ipynb) |
+| Collective Classification on a Loaded Real-World Network | - |
 
 
 ## Publications
