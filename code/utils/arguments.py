@@ -69,7 +69,7 @@ def init_batch():
     print('sampling ... = ', results.sampling)
     print('pseeds ..... = ', results.pseeds)
     print('epoch ...... = ', results.epoch)
-    print('ignore ..... = ', results.ignore)
+    print('ignoreInt .. = ', results.ignoreInt)
     print('output ..... = ', results.output)
     print("===================================================")
 
