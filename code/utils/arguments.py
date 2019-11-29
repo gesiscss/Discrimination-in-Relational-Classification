@@ -46,9 +46,9 @@ def init_batch():
                         required=True,
                         help='Epoch or # iteration (1 to 10).')
 
-    parser.add_argument('-ignore', action='store',
-                        dest='ignore',
-                        help='Class value to ignore.')
+    parser.add_argument('-ignoreInt', action='store',
+                        dest='ignoreInt',
+                        help='Class value to ignore (as int).')
 
     parser.add_argument('-output', action='store',
                         dest='output',
