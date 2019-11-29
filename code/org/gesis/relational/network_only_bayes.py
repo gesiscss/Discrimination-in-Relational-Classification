@@ -41,7 +41,7 @@ class nBC(object):
         - prior: class prior
         returns ci
         '''
-        return self._predict(ego, ni, prior)
+        return self._predict_log(ego, ni, prior)
     
     def _predict_log(self, ego, ni, prior):
         
@@ -66,6 +66,9 @@ class nBC(object):
         
         # eliminating log
         ci = np.exp( ci )
+
+        # normalizing
+        ci /= ci.sum()
 
         return ci
     
