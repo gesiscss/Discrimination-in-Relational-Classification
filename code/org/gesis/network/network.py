@@ -70,7 +70,7 @@ class Network(object):
         if ignoreInt is not None:
             to_remove = [n for n in self.G.nodes() if self.G.node[n][self.G.graph['class']] == ignoreInt]
             self.G.remove_nodes_from(to_remove)
-            self.G.graph['ignore'] = ignoreInt
+            self.G.graph['ignoreInt'] = ignoreInt
 
         # degree 0
         to_remove = [n for n in self.G.nodes() if self.G.degree(n) == 0]
