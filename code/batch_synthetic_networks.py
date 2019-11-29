@@ -16,7 +16,7 @@ def run(params):
     ### 1. Input network
     print("\n*** Network ***")
     net = Network()
-    net.load(params.datafn, params.ignore)
+    net.load(params.datafn, params.ignoreInt)
     net.info()
 
     ### 2. Sampling
