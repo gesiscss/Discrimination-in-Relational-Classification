@@ -46,6 +46,10 @@ def init_batch():
                         required=True,
                         help='Epoch or # iteration (1 to 10).')
 
+    parser.add_argument('-ignore', action='store',
+                        dest='ignore',
+                        help='Class value to ignore.')
+
     parser.add_argument('-output', action='store',
                         dest='output',
                         required=True,
@@ -65,6 +69,7 @@ def init_batch():
     print('sampling ... = ', results.sampling)
     print('pseeds ..... = ', results.pseeds)
     print('epoch ...... = ', results.epoch)
+    print('ignore ..... = ', results.ignore)
     print('output ..... = ', results.output)
     print("===================================================")
 

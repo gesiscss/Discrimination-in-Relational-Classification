@@ -55,13 +55,28 @@ class Network(object):
         else:
             raise Exception("{}: network type does not exist.".format(self.kind))
 
-    def load(self, datafn):
+    def load(self, datafn, ignore=None):
         '''
         Loads gpickle graph into G
         :param datafn:
         :return:
         '''
         self.G = load_gpickle(datafn)
+        self._validate(ignore)
+
+    def _validate(self, ignore=None):
+
+        # 1. ignore
+        if ignore is not None:
+            to_remove = [n for n in self.G.nodes() if self.G.node[n][self.G.graph['class']] == ignore]
+            self.G.remove_nodes_from(to_remove)
+            self.G.graph['ignore'] = ignore
+
+        # degree 0
+        to_remove = [n for n in self.G.nodes() if self.G.degree(n) == 0]
+        self.G.remove_nodes_from(to_remove)
+        self.G.graph['min_degree'] = min([d for n,d in self.G.degree()])
+
 
     def info(self):
         '''
