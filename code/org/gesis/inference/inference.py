@@ -36,6 +36,11 @@ def get_graph_filename(output, pseeds, postfix):
         pseeds = int(round(pseeds*100,1))
     return os.path.join(output,"P{}_graph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
 
+def get_samplegraph_filename(output, pseeds, postfix):
+    if pseeds < 1:
+        pseeds = int(round(pseeds*100,1))
+    return os.path.join(output,"P{}_samplegraph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+
 def get_evaluation_filename(output, pseeds, postfix):
     if pseeds < 1:
         pseeds = int(round(pseeds*100,1))
@@ -144,9 +149,13 @@ class Inference(object):
         pseeds = self.Gseeds.graph['pseeds']
         pseeds = int(pseeds * 100) if pseeds <= 1.0 else pseeds
 
-        # graph (with ci, xi, and seed info)
+        # 1. graph (with ci, xi, and seed info)
         fn = get_graph_filename(output, pseeds, postfix)
         write_gpickle(self.G, fn)
+
+        # 2. sample graph (nodes, edges, node attributes)
+        fn = get_samplegraph_filename(output, pseeds, postfix)
+        write_gpickle(self.Gseeds, fn)
 
         # evaluation
         obj = {}
@@ -161,6 +170,7 @@ class Inference(object):
         obj['bias'] = self.bias
         obj['lag'] = self.duration
 
+        # 3. dictionary with evaluation metrics (json file)
         fn = get_evaluation_filename(output, pseeds, postfix)
         write_pickle(obj, fn)
 

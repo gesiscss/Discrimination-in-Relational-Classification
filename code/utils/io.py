@@ -1,6 +1,7 @@
 import os
 import networkx as nx
 import pickle
+import datetime
 
 def create_folder(path, changeto=False):
     if not os.path.exists(path):
@@ -41,3 +42,7 @@ def load_gpickle(datafn):
     else:
         raise FileNotFoundError("{} does not exist.".format(datafn))
     return graph
+
+def printf(txt):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("{}:\t{}".format(now, txt))
