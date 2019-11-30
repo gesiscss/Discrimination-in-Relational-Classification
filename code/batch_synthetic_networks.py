@@ -14,31 +14,36 @@ def run(params):
         return
 
     ### 1. Input network
-    printf("\n*** Network ***")
+    print("")
+    printf("*** Network ***")
     net = Network()
     net.load(params.datafn, params.ignoreInt)
     net.info()
 
     ### 2. Sampling
-    printf("\n*** Sample ***")
+    print("")
+    printf("*** Sample ***")
     sam = Sampling(params.sampling, net.G, params.pseeds)
     sam.extract_subgraph()
     sam.info()
 
     ### 3. Local Modeling
-    printf("\n*** Local model ***")
+    print("")
+    printf("*** Local model ***")
     local_model = Local(params.LC)
     local_model.learn(sam.Gseeds)
     local_model.info()
 
     ### 4. Relational Modeling
-    printf("\n*** Relational model ***")
+    print("")
+    printf("*** Relational model ***")
     relational_model = Relational(params.RC).get_model()
     relational_model.learn(sam.Gseeds)
     relational_model.info()
 
     ### 5. Inference
-    printf("\n*** Inference ***")
+    print("")
+    printf("*** Inference ***")
     inference = Inference(params.CI)
     inference.predict(net.G, local_model, relational_model)
     inference.evaluation()
