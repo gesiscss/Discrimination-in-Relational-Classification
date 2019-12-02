@@ -2,13 +2,18 @@
 # System dependencies
 ############################################
 import networkx as nx
+import os
 
 ############################################
 # Local dependencies
 ############################################
 from org.gesis.network.generate_homophilic_graph_symmetric import homophilic_barabasi_albert_graph as BAH
 from utils.estimator import get_similitude
+from utils.estimator import get_homophily
+from utils.estimator import get_minority_fraction
 from utils.estimator import get_degrees
+from utils.estimator import get_min_degree
+from utils.estimator import get_param
 from utils.io import load_gpickle
 
 ############################################
@@ -38,16 +43,36 @@ class Network(object):
             self.G = BAH(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], similitude=kwargs['H'])
 
             h = get_similitude(self.G)
+            b = get_minority_fraction(self.G)
             k,km,kM = get_degrees(self.G)
+            m = get_min_degree(self.G)
+            i = 1 if 'i' not in kwargs else kwargs['i']
+            x = 1 if 'x' not in kwargs else kwargs['x']
 
             self.G.graph['kind'] = self.kind
+            self.G.graph['N'] = kwargs['N']
+            self.G.graph['m'] = kwargs['m']
+            self.G.graph['B'] = kwargs['B']
+            self.G.graph['H'] = kwargs['H']
+            self.G.graph['i'] = i
+            self.G.graph['x'] = x
+
+            self.G.graph['n'] = self.G.number_of_nodes()
+            self.G.graph['e'] = self.G.number_of_edges()
+            self.G.graph['h'] = h
+            self.G.graph['b'] = b
+            self.G.graph['min_degree'] = m
+            self.G.graph['k'] = k
+            self.G.graph['km'] = km
+            self.G.graph['kM'] = kM
+
             self.G.graph['fullname'] = "{}-N{}-m{}-B{}-H{}-i{}-x{}-h{}-k{}-km{}-kM{}".format(self.kind,
                                                                                              kwargs['N'],
                                                                                              kwargs['m'],
                                                                                              kwargs['B'],
                                                                                              kwargs['H'],
-                                                                                             1 if 'i' not in kwargs else kwargs['i'],
-                                                                                             1 if 'x' not in kwargs else kwargs['x'],
+                                                                                             i,
+                                                                                             x,
                                                                                              round(h,1),
                                                                                              round(k,1),
                                                                                              round(km,1),
@@ -62,9 +87,9 @@ class Network(object):
         :return:
         '''
         self.G = load_gpickle(datafn)
-        self._validate(ignoreInt)
+        self._validate(datafn, ignoreInt)
 
-    def _validate(self, ignoreInt=None):
+    def _validate(self, datafn, ignoreInt=None):
 
         # 1. ignoreInt
         if ignoreInt is not None:
@@ -72,10 +97,34 @@ class Network(object):
             self.G.remove_nodes_from(to_remove)
             self.G.graph['ignoreInt'] = ignoreInt
 
-        # degree 0
+        # 2. degree 0
         to_remove = [n for n in self.G.nodes() if self.G.degree(n) == 0]
         self.G.remove_nodes_from(to_remove)
-        self.G.graph['min_degree'] = min([d for n,d in self.G.degree()])
+
+        # 3.metadata
+        H = get_homophily(self.G)
+        h = get_similitude(self.G)
+        b = get_minority_fraction(self.G)
+        k, km, kM = get_degrees(self.G)
+        m = get_min_degree(self.G)
+
+        self.G.graph["fullname"] = os.path.basename(datafn).replace(".gpickle","")
+        self.G.graph['kind'] = self.kind
+        self.G.graph['N'] = get_param(datafn, "N") or self.G.number_of_nodes()
+        self.G.graph['m'] = get_param(datafn, "m") or m
+        self.G.graph['B'] = get_param(datafn, "B") or b
+        self.G.graph['H'] = get_param(datafn, "H") or H
+        self.G.graph['i'] = get_param(datafn, "i")
+        self.G.graph['x'] = get_param(datafn, "x")
+
+        self.G.graph['n'] = self.G.number_of_nodes()
+        self.G.graph['e'] = self.G.number_of_edges()
+        self.G.graph['h'] = h
+        self.G.graph['b'] = b
+        self.G.graph['min_degree'] = m
+        self.G.graph['k'] = k
+        self.G.graph['km'] = km
+        self.G.graph['kM'] = kM
 
 
     def info(self):

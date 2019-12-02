@@ -3,10 +3,12 @@
 ############################################
 import time
 import os
+import pandas as pd
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
+from joblib import Parallel, delayed
 
 ############################################
 # Local dependencies
@@ -15,6 +17,7 @@ from org.gesis.inference.relaxation import Relaxation
 from utils.io import create_folder
 from utils.io import write_gpickle
 from utils.io import write_pickle
+from utils.io import load_pickle
 
 ############################################
 # Constants
@@ -45,6 +48,28 @@ def get_evaluation_filename(output, pseeds, postfix):
     if pseeds < 1:
         pseeds = int(round(pseeds*100,1))
     return os.path.join(output,"P{}_evaluation{}.pickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+
+def _load_pickle_to_dataframe(fn, verbose=True):
+    obj = load_pickle(fn,verbose)
+    columns = ['N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'rocauc', 'mae', 'ccm', 'ccM', 'bias','lag']
+
+    df = pd.DataFrame({'N':obj['N'],
+                       'm':obj['m'],
+                       'B': obj['B'],
+                       'H': obj['H'],
+                       'i': obj['i'],
+                       'x': obj['x'],
+                       'sampling': obj['sampling'],
+                       'pseeds': obj['pseeds'],
+                       'epoch': obj['epoch'],
+                       'rocauc': obj['rocauc'],
+                       'mae': obj['mae'],
+                       'ccm': obj['ccm'],
+                       'ccM': obj['ccM'],
+                       'bias': obj['bias'],
+                       'lag': obj['lag']}, columns=columns, index=[0])
+    return df
+
 
 ############################################
 # Class
@@ -143,6 +168,8 @@ class Inference(object):
             output = self.G.graph['fullname']
         except:
             output = self.G.graph['name']
+
+        output = "{}_{}".format(output,self.Gseeds.graph["method"])
         create_folder(output)
 
         # pseeds as percentage
@@ -161,7 +188,15 @@ class Inference(object):
         obj = {}
         obj['N'] = self.G.number_of_nodes()
         obj['E'] = self.G.number_of_edges()
+        obj['m'] = self.G.graph['min_degree']
+        obj['B'] = self.G.graph['B']
+        obj['H'] = self.G.graph['H']
+        obj['i'] = self.G.graph['i']
+        obj['x'] = self.G.graph['x']
+
+        obj['sampling'] = self.Gseeds.graph['method']
         obj['pseeds'] = self.Gseeds.graph['pseeds']
+        obj['epoch'] = self.Gseeds.graph['epoch']
 
         obj['rocauc'] = self.rocauc
         obj['mae'] = self.mae
@@ -176,3 +211,28 @@ class Inference(object):
 
         # going back to default current loc
         os.chdir(tmp)
+
+
+    @staticmethod
+    def get_all_results_as_dataframe(path, prefix, sampling="all", njobs=1, verbose=True):
+        s = sampling if sampling != "all" else ""
+
+        files = [os.path.join(path,folder,fn) for folder in os.listdir(path)
+                 for fn in os.listdir(os.path.join(path,folder))
+                 if os.path.isdir(os.path.join(path,folder)) and folder.endswith(s)
+                 and folder.startswith(prefix) and fn.endswith("evaluation.pickle") ]
+
+        results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn,verbose) for fn in files)
+        return pd.concat(results).reset_index(drop=True)
+
+    @staticmethod
+    def get_graph_filenames(path):
+        return [os.path.join(path,fn) for fn in os.listdir(path) if fn.endswith(".gpickle") and fn.startswith("P") and "_graph" in fn]
+
+    @staticmethod
+    def get_samplegraph_filenames(path):
+        return [os.path.join(path, fn) for fn in os.listdir(path) if fn.endswith(".gpickle") and fn.startswith("P") and "_samplegraph" in fn]
+
+    @staticmethod
+    def get_evaluation_filenames(path):
+        return [os.path.join(path, fn) for fn in os.listdir(path) if fn.endswith(".pickle") and fn.startswith("P") and "_evaluation" in fn]

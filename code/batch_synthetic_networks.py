@@ -23,7 +23,7 @@ def run(params):
     ### 2. Sampling
     print("")
     printf("*** Sample ***")
-    sam = Sampling(params.sampling, net.G, params.pseeds)
+    sam = Sampling(params.sampling, net.G, params.pseeds, params.epoch)
     sam.extract_subgraph()
     sam.info()
 
@@ -48,7 +48,7 @@ def run(params):
     inference.predict(net.G, local_model, relational_model)
     inference.evaluation()
     inference.summary()
-    inference.save(params.output, params.epoch)
+    inference.save(params.output, sam.epoch)
 
     printf("done!")
 

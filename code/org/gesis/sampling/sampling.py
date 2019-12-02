@@ -11,6 +11,11 @@ from org.gesis.sampling.random_neighbors import RandomNeighbors
 from org.gesis.sampling.random_edges import RandomEdges
 from org.gesis.sampling.partial_crawls import PartialCrawls
 from org.gesis.sampling.degree_rank import DegreeRank
+from utils.estimator import get_min_degree
+from utils.estimator import get_minority_fraction
+from utils.estimator import get_similitude
+from utils.estimator import get_homophily
+from utils.estimator import get_degrees
 
 ############################################
 # Constants
@@ -26,7 +31,7 @@ PARTIAL_CRAWLS = "partial_crawls"
 ############################################
 class Sampling(object):
 
-    def __init__(self, method, G, pseeds):
+    def __init__(self, method, G, pseeds, epoch):
         '''
         Initializes the sampling object
         - method: sampling method
@@ -36,6 +41,7 @@ class Sampling(object):
         self.method = method
         self.G = G
         self.pseeds = pseeds
+        self.epoch = epoch
         self.Gseeds = None
         
     def extract_subgraph(self, **kwargs):
@@ -67,7 +73,21 @@ class Sampling(object):
         self.Gseeds.graph['pseeds'] = self.pseeds
         self.Gseeds.graph['method'] = self.method
         nx.set_node_attributes(G=self.G, name='seed', values={n:n in self.Gseeds for n in self.G.nodes()})
-        self.Gseeds.graph['min_degree'] = min([d for n, d in self.Gseeds.degree()])
+        self.Gseeds.graph['m'] = get_min_degree(self.Gseeds)
+        self.Gseeds.graph['N'] = self.Gseeds.number_of_nodes()
+        self.Gseeds.graph['B'] = get_minority_fraction(self.Gseeds)
+        self.Gseeds.graph['H'] = get_homophily(self.Gseeds)
+        self.Gseeds.graph['h'] = get_similitude(self.Gseeds)
+        self.Gseeds.graph['e'] = self.Gseeds.number_of_edges()
+        k, km, kM = get_degrees(self.Gseeds)
+        self.Gseeds.graph['k'] = k
+        self.Gseeds.graph['km'] = km
+        self.Gseeds.graph['kM'] = kM
+        self.Gseeds.graph['epoch'] = self.epoch
+
+        del (self.Gseeds.graph['n'])
+        del (self.Gseeds.graph['b'])
+        del (self.Gseeds.graph['min_degree'])
 
     def info(self):
         '''

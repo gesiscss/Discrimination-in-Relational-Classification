@@ -1,4 +1,12 @@
 import matplotlib.pyplot as plt
+import sympy
+import seaborn as sns
+from palettable.colorbrewer.diverging import RdBu_11
+import numpy as np
+import matplotlib as mpl
+from matplotlib import rc
+import matplotlib.patches as patches
+
 
 def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.figure()
@@ -11,6 +19,191 @@ def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.ylabel('True Positive Rate')
     plt.title('Receiver operating characteristic example')
     plt.legend(loc="lower right")
+    if fn is not None:
+        plt.savefig(fn, bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+def _prepare_plot(df, latex):
+    tmp = df.copy(deep=True)
+    if latex:
+        cols = {c: sympy.latex(sympy.sympify(c)).replace("_", "\_") for c in tmp.columns}
+    else:
+        cols = {c: c for c in tmp.columns}
+
+    cols['rocauc'] = cols['rocauc'].upper()
+    tmp.rename(columns=cols, inplace=True)
+    mpl.rcParams.update(mpl.rcParamsDefault)
+
+    if latex:
+        rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
+        rc('text', usetex=True)
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        mpl.rcParams['pdf.fonttype'] = 42
+        mpl.rcParams['ps.fonttype'] = 42
+        mpl.rcParams['text.usetex'] = True
+
+        lw = 0.8
+        sns.set_context("paper", rc={"lines.linewidth": lw})
+    else:
+        sns.set_context('paper', font_scale=1.2)
+
+    return tmp, cols
+
+def _plot_lines(x, y, **kwargs):
+    ax = plt.gca()
+    data = kwargs.pop("data")
+    mean = kwargs.pop("mean")
+    sns.pointplot(data=data, x=x, y=y, ci='sd', estimator=np.mean, ax=ax, **kwargs)
+    ax.axhline(y=0.5, color='grey', linestyle=':', lw=0.8, label="random")
+    ax.grid(False)
+
+def plot_rocauc_vs_homophily_per_B_m_pseeds(df, latex=True, fn=None):
+
+    tmp, cols = _prepare_plot(df, latex)
+
+    evaluation = cols['rocauc']
+    xaxis = cols['H']
+    hue = cols['pseeds']
+
+    fg = sns.catplot(data=tmp,
+                     x=xaxis,
+                     y=evaluation,
+                     col=cols['B'],
+                     row=cols['m'],
+                     hue=hue,
+                     ci='sd',
+                     kind='point',
+                     margin_titles=True,
+                     height=1.7,
+                     aspect=0.9,
+                     palette=RdBu_11.mpl_colors,
+                     legend=True,
+                     )
+
+    for aa in np.ndenumerate(fg.axes):
+        coord = aa[0]
+
+        if coord != (1, 1):
+            aa[1].set_xlabel("")
+
+        if coord[0] == 1:
+            labels = aa[1].get_xticklabels()  # get x labels
+            for i, l in enumerate(labels):
+                if (i not in [1, 5, 9]): labels[i] = ''  # skip even labels
+            aa[1].set_xticklabels(labels, rotation=0)
+
+        aa[1].axhline(0.5, lw=0.5, c="grey", ls="--")
+
+        # example
+        if coord == (0, 0):
+            aa[1].annotate('', xy=(9.1, 0.61),
+                           xytext=(10, 0.45),
+                           arrowprops={'arrowstyle': '-|>',
+                                       'lw': 2,
+                                       'ec': 'k', 'fc': 'k'},
+                           va='center')
+
+    plt.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    if fn is not None:
+        plt.savefig(fn, bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+def plot_rocauc_vs_pseeds_per_B_N_m(df, latex=True, fn=None):
+
+    tmp = df.copy()
+    tmp.loc[:, 'network_size'] = tmp.apply(lambda row: "N{}, m{}".format(row["N"], row["m"]), axis=1)
+    tmp, cols = _prepare_plot(tmp, latex)
+
+
+    evaluation = 'rocauc'
+    xaxis = cols['pseeds']
+    hue = cols['network_size']
+
+    hue_order = tmp[hue].unique()
+    fg = sns.FacetGrid(tmp[[cols[c] for c in ['network_size', 'H', 'B', evaluation, 'pseeds']]],
+                       col=cols["H"], row=cols['B'],
+                       hue=hue, hue_order=hue_order, palette='Paired',
+                       sharex=True, sharey=True,
+                       height=1, aspect=0.8,
+                       margin_titles=True, legend_out=True)
+    fg = fg.map_dataframe(_plot_lines, cols[xaxis], cols[evaluation], mean=tmp[cols[evaluation]].mean())
+
+    labels = hue_order
+    colors = sns.color_palette('Paired').as_hex()[:len(labels)]
+    handles = [patches.Patch(color=col, label=lab) for col, lab in zip(colors, labels)]
+    ncols = tmp[cols['network_size']].nunique()
+    fg.fig.legend(handles=handles, title=hue,
+                  bbox_to_anchor=(0.5 - (0.032 * ncols), 0.98, 0.93, 0.18),
+                  loc='lower left', ncol=ncols)
+
+    # 4 networkls size: bbox_to_anchor=(0.5-(0.056*ncols), 0.98, 0.93, 0.18),
+    # "Network size, minimum degree"
+    # bbox_to_anchor = (x, y, width, height)
+    # loc = lower left (from top-left corner)
+
+    for aa in np.ndenumerate(fg.axes):
+        coord = aa[0]
+        if coord != (1, 0):
+            aa[1].set_ylabel("")
+        if coord != (2, 5):
+            aa[1].set_xlabel("")
+        if coord[0] == 2:
+            labels = aa[1].get_xticklabels()  # get x labels
+            for i, l in enumerate(labels):
+                if (i not in [1, 5, 9]): labels[i] = ''  # skip even labels
+            aa[1].set_xticklabels(labels, rotation=0)
+
+    plt.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    if fn is not None:
+        fg.savefig(fn, bbox_inches='tight')
+        print("{} saved!".format(fn))
+
+    plt.show()
+    plt.close()
+
+def plot_bias_vs_pseeds_per_B_H_sampling(df, latex=True, fn=None):
+    tmp, cols = _prepare_plot(df, latex)
+
+    evaluation = cols['bias']
+    xaxis = cols['pseeds']
+    hue = cols['sampling']
+
+    fg = sns.catplot(data=tmp,
+                     x=xaxis,
+                     y=evaluation,
+                     col=cols['B'],
+                     row=cols['H'],
+                     hue=hue,
+                     ci='sd',
+                     kind='bar',
+                     margin_titles=True,
+                     height=1.7,
+                     aspect=0.9,
+                     legend=True,
+                     )
+
+    for aa in np.ndenumerate(fg.axes):
+        coord = aa[0]
+
+        if coord != (1, 1):
+            aa[1].set_xlabel("")
+
+        if coord[0] == 1:
+            labels = aa[1].get_xticklabels()  # get x labels
+            for i, l in enumerate(labels):
+                if (i not in [1, 5, 9]): labels[i] = ''  # skip even labels
+            aa[1].set_xticklabels(labels, rotation=0)
+
+        aa[1].axhline(0.5, lw=0.5, c="grey", ls="--")
+        aa[1].set_ylim((0,1))
+
+    plt.subplots_adjust(hspace=0.05, wspace=0.05)
+
     if fn is not None:
         plt.savefig(fn, bbox_inches='tight')
     plt.show()

@@ -2,10 +2,43 @@ import pandas as pd
 from collections import Counter
 import numpy as np
 
+##################################################################################
+# Networks
+##################################################################################
+
+def get_param(datafn, key):
+    # BAH-N2000-m20-B0.1-H0.0-i1-x5-h0.0-k37.9-km189.4-kM21.0.gpickle
+    # Swarthmore42.gpickle
+
+    if not key.startswith("-"):
+        key = '-{}'.format(key)
+
+    if key in datafn:
+        return datafn.split(key)[-1].split("-")
+
+    return None
+
+def get_edge_type_counts(graph):
+    counts = Counter([ '{}{}'.format(graph.graph['group'][graph.graph['labels'].index(graph.node[edge[0]][graph.graph['class']])], graph.graph['group'][graph.graph['labels'].index(graph.node[edge[1]][graph.graph['class']])]) for edge in graph.edges()])
+    return counts['mm'], counts['mM'], counts['MM'], counts['Mm']
+
+def get_homophily(graph):
+
+    fm = get_minority_fraction(graph)
+    Emm, EmM, EMM, EMm = get_edge_type_counts(graph)
+
+    fM = 1 - fm
+    emm = float(Emm) / (Emm + EmM + EMm + EMM)
+    return float(-2 * emm * fm * fM) / ((emm * (fm ** 2)) - (2 * emm * fm * fM) + (emm * (fM ** 2) - (fm ** 2)))
+
 
 def get_similitude(graph):
     h = round(sum([int(graph.node[edge[0]][graph.graph['class']]==graph.node[edge[1]][graph.graph['class']]) for edge in graph.edges()]) / graph.number_of_edges(),1)
     return h
+
+def get_minority_fraction(graph):
+    b = Counter([graph.node[n][graph.graph['class']] for n in graph.nodes()]).most_common()[1][1] / graph.number_of_nodes()
+    return b
 
 def get_degrees(graph):
     labels = graph.graph['labels']
@@ -24,6 +57,13 @@ def get_degrees(graph):
             kM.append(graph.degree(n))
 
     return np.mean(k),np.mean(km),np.mean(kM)
+
+def get_min_degree(graph):
+    return min([d for n, d in graph.degree()])
+
+##################################################################################
+# Collective Relational Classification
+##################################################################################
 
 def prior_learn(Gseeds):
     tmp = Counter([Gseeds.node[n][Gseeds.graph['class']] for n in Gseeds.nodes()])

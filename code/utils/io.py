@@ -17,6 +17,16 @@ def create_folder(path, changeto=False):
         except:
             pass
 
+def load_pickle(fn, verbose=True):
+    try:
+        with open(fn, 'rb') as f:
+            obj = pickle.load(f)
+
+            if verbose:
+                print("{} loaded!".format(fn))
+            return obj
+    except Exception as ex:
+        print(ex)
 
 def write_pickle(obj, fn):
     try:
