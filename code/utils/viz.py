@@ -8,6 +8,17 @@ from matplotlib import rc
 import matplotlib.patches as patches
 
 
+def latex_compatible(df, latex=True,text=False):
+    tmp = df.copy()
+    if text:
+        return sympy.latex(sympy.sympify(tmp)).replace("_","\_")
+    if latex:
+        cols = {c:c if c=="N" else sympy.latex(sympy.sympify(c)).replace("_","\_") for c in tmp.columns}
+        tmp.rename(columns=cols, inplace=True)
+    if 'sampling' in tmp.columns:
+        tmp.sampling = tmp.apply(lambda row: row.sampling.replace('_','\_') , axis=1)
+    return tmp
+
 def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.figure()
     lw = 2
@@ -24,15 +35,7 @@ def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.show()
     plt.close()
 
-def _prepare_plot(df, latex):
-    tmp = df.copy(deep=True)
-    if latex:
-        cols = {c: sympy.latex(sympy.sympify(c)).replace("_", "\_") for c in tmp.columns}
-    else:
-        cols = {c: c for c in tmp.columns}
-
-    cols['rocauc'] = cols['rocauc'].upper()
-    tmp.rename(columns=cols, inplace=True)
+def plot_setup(latex=True):
     mpl.rcParams.update(mpl.rcParamsDefault)
 
     if latex:
@@ -49,6 +52,15 @@ def _prepare_plot(df, latex):
     else:
         sns.set_context('paper', font_scale=1.2)
 
+def _prepare_plot(df, latex=True):
+    tmp = df.copy(deep=True)
+    if latex:
+        cols = {c: sympy.latex(sympy.sympify(c)).replace("_", "\_") for c in tmp.columns}
+    else:
+        cols = {c: c for c in tmp.columns}
+
+    cols['rocauc'] = cols['rocauc'].upper()
+    tmp.rename(columns=cols, inplace=True)
     return tmp, cols
 
 def _plot_lines(x, y, **kwargs):
@@ -167,6 +179,7 @@ def plot_rocauc_vs_pseeds_per_B_N_m(df, latex=True, fn=None):
     plt.close()
 
 def plot_bias_vs_pseeds_per_B_H_sampling(df, latex=True, fn=None):
+
     tmp, cols = _prepare_plot(df, latex)
 
     evaluation = cols['bias']
@@ -208,3 +221,131 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, latex=True, fn=None):
         plt.savefig(fn, bbox_inches='tight')
     plt.show()
     plt.close()
+
+
+
+
+#     _plot_by_pseeds(df, y, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, ytickslabels=True, bars=False, logy=False)
+#
+# def _plot_by_pseeds(df, y, hue_order, fn=None, ylabel=(True,True), legend=True, toplegend=False, ytickslabels=True, bars=False, logy=False):
+#     tmp, cols = _prepare_plot(df)
+#
+#     baseline = {'rocauc': 0.5, 'bias': 0.5, 'zscore': 0}
+#     ymetric = {'rocauc': 'ROCAUC', 'bias': 'Bias', 'zscore': 'z-score'}
+#
+#     if bars:
+#         tmp = tmp.query("pseeds < 40")
+#
+#     fg = sns.FacetGrid(data=tmp, col='B', row='H', hue='sampling',
+#                        hue_order=hue_order,
+#                        margin_titles=True,
+#                        height=1.2 if tmp.H.nunique() > 1 else 2,
+#                        aspect=1.2 if tmp.H.nunique() > 1 else 0.75,
+#                        dropna=False,
+#                        )
+#
+#     if bars:
+#         fg = fg.map_dataframe(_plot_bars, 'pseeds', y, logy=logy)
+#     else:
+#         fg = fg.map_dataframe(_plot_lines, 'pseeds', y, marker='o', lw=1.0, alpha=1.0)
+#
+#     if legend:
+#         if not toplegend:
+#             fg.add_legend()
+#         else:
+#             fg.axes[0, 0].legend(loc='lower left',
+#                                  bbox_to_anchor=(-0.08, 1.3, 0.1, 1),  # -0.25
+#                                  borderaxespad=0,
+#                                  labelspacing=0,
+#                                  handlelength=1,
+#                                  frameon=False,
+#                                  ncol=df.sampling.nunique())
+#
+#     for ax in fg.axes.flatten():
+#         try:
+#             ax.axhline(baseline[y], lw=1, ls='--', c='grey')
+#         except:
+#             pass
+#
+#         ax.set_xlabel('')
+#         ax.set_ylabel('')
+#
+#         # if not bars:
+#         if ylabel in ['rocauc', 'bias']:
+#             ax.set_ylim((-0.1, 1.1))
+#
+#         if logy:
+#             ax.set_yscale('log')
+#
+#     try:
+#         fg.axes[2, 1].set_xlabel('pseeds')
+#         if ylabel[0]:
+#             if y == 'bias':
+#                 fg.axes[1, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
+#             else:
+#                 fg.axes[1, 0].set_ylabel(ymetric[y])
+#         if not ylabel[1]:
+#             fg.axes[0, 2].texts = []
+#             fg.axes[1, 2].texts = []
+#             fg.axes[2, 2].texts = []
+#         if not ytickslabels:
+#             for r in [1, 2]:
+#                 for c in [0, 1, 2]:
+#                     fg.axes[r, c].set_yticklabels([])
+#     except:
+#         fg.axes[0, 1].set_xlabel('pseeds')
+#         if y == 'bias':
+#             fg.axes[0, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
+#         else:
+#             try:
+#                 fg.axes[0, 0].set_ylabel(ymetric[y])
+#             except:
+#                 fg.axes[0, 0].set_ylabel(y)
+#         pass
+#
+#     plt.subplots_adjust(hspace=0.05, wspace=0.05)
+#
+#     if fn is not None:
+#         fg.savefig(fn, bbox_inches='tight')
+#         print("{} saved!".format(fn))
+#     plt.show()
+#     plt.close()
+#
+#     def _plot_bars(x, y, **kwargs):
+#         width = 0.2
+#
+#         ax = plt.gca()
+#         data = kwargs.pop("data")
+#         g = data.groupby(['B', 'H', 'pseeds', 'sampling'])  # 'N',m
+#         means = g[y].mean().reset_index()
+#         errors = g[y].std()
+#         logy = kwargs.pop("logy")
+#
+#         span = {'nodes': width * 0, 'nedges': width * 1, 'degree': width * 2, 'partialcrawls': width * 3}
+#         sampling = data.sampling.unique()[0].replace("_", "").replace("\\", "")
+#         span = span[sampling]
+#
+#         xticks = np.arange(1, means.pseeds.nunique() + 1, 1)
+#         ax.bar(xticks + span, means[y], width, yerr=errors, bottom=0, **kwargs)
+#
+#         ax.set_xticks(xticks + width)
+#         ax.set_xticklabels(sorted(data.pseeds.astype(np.int).unique()))
+#
+#         if logy:
+#             ax.set_yscale('symlog')
+#
+#     def _plot_lines(x, y, **kwargs):
+#
+#         ax = plt.gca()
+#         data = kwargs.pop("data")
+#         g = data.groupby(['B', 'H', 'pseeds', 'sampling'])  # 'N',m
+#         means = g[y].mean().reset_index()
+#
+#         if 'errors' in kwargs:
+#             if not kwargs.pop('errors'):
+#                 ax.plot(means.pseeds, means[y], **kwargs)
+#                 return
+#
+#         errors = g[y].std()
+#         ax.errorbar(means.pseeds, means[y], yerr=errors, **kwargs)
+

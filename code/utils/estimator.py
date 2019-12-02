@@ -14,7 +14,7 @@ def get_param(datafn, key):
         key = '-{}'.format(key)
 
     if key in datafn:
-        return datafn.split(key)[-1].split("-")
+        return datafn.split(key)[-1].split("-")[0].replace(".gpickle","")
 
     return None
 
