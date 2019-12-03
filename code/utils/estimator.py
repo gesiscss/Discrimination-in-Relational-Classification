@@ -22,10 +22,15 @@ def get_edge_type_counts(graph):
     counts = Counter([ '{}{}'.format(graph.graph['group'][graph.graph['labels'].index(graph.node[edge[0]][graph.graph['class']])], graph.graph['group'][graph.graph['labels'].index(graph.node[edge[1]][graph.graph['class']])]) for edge in graph.edges()])
     return counts['mm'], counts['mM'], counts['MM'], counts['Mm']
 
-def get_homophily(graph):
+def get_homophily(graph, smooth=1):
 
     fm = get_minority_fraction(graph)
     Emm, EmM, EMM, EMm = get_edge_type_counts(graph)
+
+    Emm += smooth
+    EmM += smooth
+    EMM += smooth
+    EMm += smooth
 
     fM = 1 - fm
     emm = float(Emm) / (Emm + EmM + EMm + EMM)
