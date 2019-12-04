@@ -28,11 +28,13 @@ RELAXATION = "relaxation"
 # Functions
 ############################################
 
-def is_inference_done(root, datafn, pseeds, postfix):
-    output = os.path.join(root, os.path.basename(datafn).replace(".gpickle", ""))
+def is_inference_done(root, datafn, sampling, pseeds, postfix):
+    output = os.path.join(root, "{}_{}".format(os.path.basename(datafn).replace(".gpickle", ""),sampling))
     f1 = get_graph_filename(output, pseeds, postfix)
-    f2 = get_evaluation_filename(output, pseeds, postfix)
-    return os.path.exists(f1) and os.path.exists(f2)
+    f2 = get_samplegraph_filename(output, pseeds, postfix)
+    f3 = get_evaluation_filename(output, pseeds, postfix)
+
+    return os.path.exists(f1) and os.path.exists(f2) and os.path.exists(f3)
 
 def get_graph_filename(output, pseeds, postfix):
     if pseeds < 1:
@@ -51,9 +53,10 @@ def get_evaluation_filename(output, pseeds, postfix):
 
 def _load_pickle_to_dataframe(fn, verbose=True):
     obj = load_pickle(fn,verbose)
-    columns = ['N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias','lag']
+    columns = ['kind', 'N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias','lag']
 
-    df = pd.DataFrame({'N':obj['N'],
+    df = pd.DataFrame({'kind':fn.split("/")[-2].split("-")[0].split("_")[0],
+                       'N':obj['N'],
                        'm':obj['m'],
                        'B': obj['B'],
                        'H': obj['H'],
@@ -260,13 +263,14 @@ class Inference(object):
         return
 
     @staticmethod
-    def get_all_results_as_dataframe(path, prefix, sampling="all", njobs=1, verbose=True):
+    def get_all_results_as_dataframe(path, kind, sampling="all", njobs=1, verbose=True):
         s = sampling if sampling != "all" else ""
+        k = kind if kind != "all" else ""
 
         files = [os.path.join(path,folder,fn) for folder in os.listdir(path)
                  for fn in os.listdir(os.path.join(path,folder))
                  if os.path.isdir(os.path.join(path,folder)) and folder.endswith(s)
-                 and folder.startswith(prefix) and fn.endswith(".pickle") and "evaluation" in fn]
+                 and folder.startswith(k) and fn.endswith(".pickle") and "evaluation" in fn]
 
         results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn,verbose) for fn in files)
         df = pd.concat(results).reset_index(drop=True)

@@ -1,4 +1,4 @@
-from utils.arguments import init_batch
+from utils.arguments import init_batch_collective_classification
 from org.gesis.network.network import Network
 from org.gesis.sampling.sampling import Sampling
 from org.gesis.local.local import Local
@@ -9,7 +9,7 @@ from utils.io import printf
 
 def run(params):
 
-    if is_inference_done(params.output, params.datafn, params.pseeds, params.epoch):
+    if is_inference_done(params.output, params.datafn, params.sampling, params.pseeds, params.epoch):
         printf("Already done!")
         return
 
@@ -53,5 +53,5 @@ def run(params):
     printf("done!")
 
 if __name__ == "__main__":
-    params = init_batch()
+    params = init_batch_collective_classification()
     run(params)
