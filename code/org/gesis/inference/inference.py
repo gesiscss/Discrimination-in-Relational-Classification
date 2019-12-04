@@ -51,7 +51,7 @@ def get_evaluation_filename(output, pseeds, postfix):
 
 def _load_pickle_to_dataframe(fn, verbose=True):
     obj = load_pickle(fn,verbose)
-    columns = ['N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'rocauc', 'mae', 'ccm', 'ccM', 'bias','lag']
+    columns = ['N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias','lag']
 
     df = pd.DataFrame({'N':obj['N'],
                        'm':obj['m'],
@@ -62,6 +62,9 @@ def _load_pickle_to_dataframe(fn, verbose=True):
                        'sampling': obj['sampling'],
                        'pseeds': obj['pseeds'],
                        'epoch': obj['epoch'],
+                       'n': obj['n'],
+                       'e': obj['e'],
+                       'min_degree': obj['min_degree'],
                        'rocauc': obj['rocauc'],
                        'mae': obj['mae'],
                        'ccm': obj['ccm'],
@@ -70,6 +73,22 @@ def _load_pickle_to_dataframe(fn, verbose=True):
                        'lag': obj['lag']}, columns=columns, index=[0])
     return df
 
+def _update_pickle_to_dataframe(fn, verbose=True):
+    # /results-individual/BAH-N2000-m4-B0.5-H0.8-i1-x1-h0.8-k8.0-km8.0-kM7.9_nedges/P80_evaluation.pickle
+
+    obj = load_pickle(fn, verbose)
+    N = int(fn.split("/")[-2].split("-")[1][1:])
+    m = int(fn.split("/")[-2].split("-")[2][1:])
+
+    obj['n'] = int(obj['N'])
+    obj['e'] = int(obj['E'])
+    obj['min_degree'] = int(obj['m'])
+
+    obj['N'] = N
+    obj['m'] = m
+    del(obj['E'])
+
+    write_pickle(obj, fn)
 
 ############################################
 # Class
@@ -186,9 +205,8 @@ class Inference(object):
 
         # evaluation
         obj = {}
-        obj['N'] = self.G.number_of_nodes()
-        obj['E'] = self.G.number_of_edges()
-        obj['m'] = self.G.graph['min_degree']
+        obj['N'] = self.G.graph['N']
+        obj['m'] = self.G.graph['m']
         obj['B'] = self.G.graph['B']
         obj['H'] = self.G.graph['H']
         obj['i'] = self.G.graph['i']
@@ -197,6 +215,10 @@ class Inference(object):
         obj['sampling'] = self.Gseeds.graph['method']
         obj['pseeds'] = self.Gseeds.graph['pseeds']
         obj['epoch'] = self.Gseeds.graph['epoch']
+
+        obj['n'] = self.G.number_of_nodes()
+        obj['e'] = self.G.number_of_edges()
+        obj['min_degree'] = self.G.graph['min_degree']
 
         obj['rocauc'] = self.rocauc
         obj['mae'] = self.mae
@@ -212,6 +234,17 @@ class Inference(object):
         # going back to default current loc
         os.chdir(tmp)
 
+    @staticmethod
+    def update_all_results(path, prefix, sampling="all", njobs=1, verbose=True):
+        s = sampling if sampling != "all" else ""
+
+        files = [os.path.join(path, folder, fn) for folder in os.listdir(path)
+                 for fn in os.listdir(os.path.join(path, folder))
+                 if os.path.isdir(os.path.join(path, folder)) and folder.endswith(s)
+                 and folder.startswith(prefix) and fn.endswith(".pickle") and "evaluation" in fn]
+
+        _ = Parallel(n_jobs=njobs)(delayed(_update_pickle_to_dataframe)(fn, verbose) for fn in files)
+        return
 
     @staticmethod
     def get_all_results_as_dataframe(path, prefix, sampling="all", njobs=1, verbose=True):
@@ -223,7 +256,9 @@ class Inference(object):
                  and folder.startswith(prefix) and fn.endswith(".pickle") and "evaluation" in fn]
 
         results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn,verbose) for fn in files)
-        return pd.concat(results).reset_index(drop=True)
+        df = pd.concat(results).reset_index(drop=True)
+        df.loc[:, 'network_size'] = df.apply(lambda row: "N{}, m{}".format(row["N"], row["m"]), axis=1)
+        return df
 
     @staticmethod
     def get_graph_filenames(path):
