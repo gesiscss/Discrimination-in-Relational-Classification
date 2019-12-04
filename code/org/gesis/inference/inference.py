@@ -220,7 +220,7 @@ class Inference(object):
         files = [os.path.join(path,folder,fn) for folder in os.listdir(path)
                  for fn in os.listdir(os.path.join(path,folder))
                  if os.path.isdir(os.path.join(path,folder)) and folder.endswith(s)
-                 and folder.startswith(prefix) and fn.endswith("evaluation.pickle") ]
+                 and folder.startswith(prefix) and fn.endswith(".pickle") and "evaluation" in fn]
 
         results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn,verbose) for fn in files)
         return pd.concat(results).reset_index(drop=True)
