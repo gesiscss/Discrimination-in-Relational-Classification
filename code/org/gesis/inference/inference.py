@@ -1,67 +1,75 @@
 ############################################
 # System dependencies
 ############################################
-import time
 import os
-import pandas as pd
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import roc_curve
-from sklearn.metrics import auc
-from joblib import Parallel, delayed
+import time
 
+import pandas as pd
+from joblib import Parallel, delayed
 ############################################
 # Local dependencies
 ############################################
 from org.gesis.inference.relaxation import Relaxation
+from sklearn.metrics import auc
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
 from utils.io import create_folder
+from utils.io import load_pickle
 from utils.io import write_gpickle
 from utils.io import write_pickle
-from utils.io import load_pickle
 
 ############################################
 # Constants
 ############################################
 RELAXATION = "relaxation"
 
+
 ############################################
 # Functions
 ############################################
 
-def is_inference_done(root, datafn, pseeds, postfix):
-    output = os.path.join(root, os.path.basename(datafn).replace(".gpickle", ""))
+def is_inference_done(root, datafn, sampling, pseeds, postfix):
+    output = os.path.join(root, "{}_{}".format(os.path.basename(datafn).replace(".gpickle", ""), sampling))
     f1 = get_graph_filename(output, pseeds, postfix)
-    f2 = get_evaluation_filename(output, pseeds, postfix)
-    return os.path.exists(f1) and os.path.exists(f2)
+    f2 = get_samplegraph_filename(output, pseeds, postfix)
+    f3 = get_evaluation_filename(output, pseeds, postfix)
+
+    return os.path.exists(f1) and os.path.exists(f2) and os.path.exists(f3)
+
 
 def get_graph_filename(output, pseeds, postfix):
     if pseeds < 1:
-        pseeds = int(round(pseeds*100,1))
-    return os.path.join(output,"P{}_graph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+        pseeds = int(round(pseeds * 100, 1))
+    return os.path.join(output, "P{}_graph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+
 
 def get_samplegraph_filename(output, pseeds, postfix):
     if pseeds < 1:
-        pseeds = int(round(pseeds*100,1))
-    return os.path.join(output,"P{}_samplegraph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+        pseeds = int(round(pseeds * 100, 1))
+    return os.path.join(output, "P{}_samplegraph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+
 
 def get_evaluation_filename(output, pseeds, postfix):
     if pseeds < 1:
-        pseeds = int(round(pseeds*100,1))
-    return os.path.join(output,"P{}_evaluation{}.pickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+        pseeds = int(round(pseeds * 100, 1))
+    return os.path.join(output, "P{}_evaluation{}.pickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
+
 
 def _load_pickle_to_dataframe(fn, verbose=True):
-    obj = load_pickle(fn,verbose)
-    columns = ['N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias','lag']
+    obj = load_pickle(fn, verbose)
+    columns = ['kind', 'N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias', 'lag']
 
-    df = pd.DataFrame({'N':obj['N'],
-                       'm':obj['m'],
-                       'B': obj['B'],
-                       'H': obj['H'],
-                       'i': obj['i'],
-                       'x': obj['x'],
+    df = pd.DataFrame({'kind': fn.split("/")[-2].split("-")[0].split("_")[0],
+                       'N': int(obj['N']),
+                       'm': int(obj['m']),
+                       'B': float(obj['B']),
+                       'H': float(obj['H']),
+                       'i': int(obj['i']),
+                       'x': int(obj['x']),
                        'sampling': obj['sampling'],
-                       'pseeds': obj['pseeds'],
-                       'epoch': obj['epoch'],
+                       'pseeds': float(obj['pseeds']),
+                       'epoch': int(obj['epoch']),
                        'n': obj['n'],
                        'e': obj['e'],
                        'min_degree': obj['min_degree'],
@@ -72,6 +80,7 @@ def _load_pickle_to_dataframe(fn, verbose=True):
                        'bias': obj['bias'],
                        'lag': obj['lag']}, columns=columns, index=[0])
     return df
+
 
 def _update_pickle_to_dataframe(fn, verbose=True):
     # /results-individual/BAH-N2000-m4-B0.5-H0.8-i1-x1-h0.8-k8.0-km8.0-kM7.9_nedges/P80_evaluation.pickle
@@ -89,7 +98,7 @@ def _update_pickle_to_dataframe(fn, verbose=True):
 
             obj['N'] = N
             obj['m'] = m
-            del(obj['E'])
+            del (obj['E'])
 
             write_pickle(obj, fn)
         else:
@@ -103,11 +112,11 @@ def _update_pickle_to_dataframe(fn, verbose=True):
         del (obj['E'])
         write_pickle(obj, fn)
 
+
 ############################################
 # Class
 ############################################
 class Inference(object):
-
     def __init__(self, method):
         '''
         Initializes the inference object
@@ -123,7 +132,7 @@ class Inference(object):
         self.fpr = None
         self.tpr = None
         self.duration = None
-        
+
     def predict(self, G, local_model, relational_model):
         '''
         Creates a new instance of the respective collective inference algorithm
@@ -137,12 +146,12 @@ class Inference(object):
         start_time = time.time()
         if self.method == RELAXATION:
             Relaxation(G,
-                       local_model, 
+                       local_model,
                        relational_model).predict()
         else:
             raise Exception("inference method does not exist: {}".format(self.method))
         self.duration = time.time() - start_time
-        
+
     def evaluation(self):
         '''
         Computes global and group evaluation metrics.
@@ -150,32 +159,32 @@ class Inference(object):
         group: ccm, ccM, bias
         '''
         labels = self.G.graph['labels']
-        y_true, y_score, y_pred = zip(*[(labels.index(self.G.node[n][self.G.graph['class']]), 
-                                    self.G.node[n]['ci'].loc[labels[1]], 
-                                    labels.index(self.G.node[n]['xi'])) 
-                               for n in self.G.nodes() if not self.G.node[n]['seed']])
-        
+        y_true, y_score, y_pred = zip(*[(labels.index(self.G.node[n][self.G.graph['class']]),
+                                         self.G.node[n]['ci'].loc[labels[1]],
+                                         labels.index(self.G.node[n]['xi']))
+                                        for n in self.G.nodes() if not self.G.node[n]['seed']])
+
         print(y_true[:5])
         print(y_pred[:5])
         print(y_score[:5])
-        
+
         # general performance metrics
         self.rocauc = roc_auc_score(y_true, y_score)
         self.fpr, self.tpr, _ = roc_curve(y_true, y_score)
         self.rocauc_curve = auc(self.fpr, self.tpr)
         self.mae = mean_absolute_error(list(y_true), list(y_pred))
-        
+
         # minority performance
         m = sum(y_true)
-        self.ccm = sum([1 for t,p in zip(*[y_true,y_pred]) if t==p and t==1]) / m
-        
+        self.ccm = sum([1 for t, p in zip(*[y_true, y_pred]) if t == p and t == 1]) / m
+
         # majority performance
         M = len(y_true) - m
-        self.ccM = sum([1 for t,p in zip(*[y_true,y_pred]) if t==p and t==0]) / M    
-        
+        self.ccM = sum([1 for t, p in zip(*[y_true, y_pred]) if t == p and t == 0]) / M
+
         # fairness
         self.bias = self.ccm / (self.ccm + self.ccM)
-    
+
     def summary(self):
         '''
         Prints evaluation metric values
@@ -191,17 +200,16 @@ class Inference(object):
         print("")
 
     def save(self, root, postfix=None):
-
         tmp = os.getcwd()
 
         # create folder for network and pseeds
-        create_folder(root,True)
+        create_folder(root, True)
         try:
             output = self.G.graph['fullname']
         except:
             output = self.G.graph['name']
 
-        output = "{}_{}".format(output,self.Gseeds.graph["method"])
+        output = "{}_{}".format(output, self.Gseeds.graph["method"])
         create_folder(output)
 
         # pseeds as percentage
@@ -260,22 +268,23 @@ class Inference(object):
         return
 
     @staticmethod
-    def get_all_results_as_dataframe(path, prefix, sampling="all", njobs=1, verbose=True):
+    def get_all_results_as_dataframe(path, kind, sampling="all", njobs=1, verbose=True):
         s = sampling if sampling != "all" else ""
+        k = kind if kind != "all" else ""
 
-        files = [os.path.join(path,folder,fn) for folder in os.listdir(path)
-                 for fn in os.listdir(os.path.join(path,folder))
-                 if os.path.isdir(os.path.join(path,folder)) and folder.endswith(s)
-                 and folder.startswith(prefix) and fn.endswith(".pickle") and "evaluation" in fn]
+        files = [os.path.join(path, folder, fn) for folder in os.listdir(path)
+                 for fn in os.listdir(os.path.join(path, folder))
+                 if os.path.isdir(os.path.join(path, folder)) and folder.endswith(s)
+                 and folder.startswith(k) and fn.endswith(".pickle") and "evaluation" in fn]
 
-        results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn,verbose) for fn in files)
+        results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn, verbose) for fn in files)
         df = pd.concat(results).reset_index(drop=True)
         df.loc[:, 'network_size'] = df.apply(lambda row: "N{}, m{}".format(row["N"], row["m"]), axis=1)
         return df
 
     @staticmethod
     def get_graph_filenames(path):
-        return [os.path.join(path,fn) for fn in os.listdir(path) if fn.endswith(".gpickle") and fn.startswith("P") and "_graph" in fn]
+        return [os.path.join(path, fn) for fn in os.listdir(path) if fn.endswith(".gpickle") and fn.startswith("P") and "_graph" in fn]
 
     @staticmethod
     def get_samplegraph_filenames(path):

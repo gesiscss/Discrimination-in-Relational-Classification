@@ -1,16 +1,15 @@
-import matplotlib.pyplot as plt
-import sympy
-import seaborn as sns
-from palettable.colorbrewer.diverging import RdBu_11
-import numpy as np
 import matplotlib as mpl
-from matplotlib import rc
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import sympy
+from matplotlib import rc
+from palettable.colorbrewer.diverging import RdBu_11
 
 
 def latex_compatible_text(txt):
     return sympy.latex(sympy.sympify(txt)).replace("_", "\_")
-
 
 def latex_compatible_dataframe(df, latex=True):
     tmp = df.copy()
@@ -23,7 +22,6 @@ def latex_compatible_dataframe(df, latex=True):
     cols['rocauc'] = cols['rocauc'].upper()
     tmp.rename(columns=cols, inplace=True)
     return tmp, cols
-
 
 def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.figure()
@@ -214,6 +212,24 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     plt.show()
     plt.close()
 
+def plot_fixed_effects(output=None):
+    fig = plt.figure(figsize=(3, 3))
+    ax = fig.add_subplot(1, 1, 1)
+    fe_params.reset_index().plot(ax=ax, kind='bar', x='index', y='LMM')
+    # ax.set_title("Fixed Effects")
+    ax.set_xlabel("")
+    ax.set_xticks(np.arange(fe_params.index.shape[0]))
+    ax.set_xticklabels(fe_params.index.values.tolist(), rotation=0)
+    ax.set_ylabel("")  # LMM
+    ax.axhline(y=0, color='black', linestyle='--', lw=1)
+    ax.get_legend().remove()
+
+    if output is not None:
+        fn = os.path.join(output, 'fixed_effects.pdf')
+        fig.savefig(fn, bbox_inches='tight')
+        print('{} saved!'.format(fn))
+    plt.show()
+    plt.close()
 
 
 

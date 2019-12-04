@@ -10,7 +10,7 @@ from utils.io import printf
 
 def run(params):
 
-    if is_inference_done(params.output, params.datafn, params.pseeds, params.epoch):
+    if is_inference_done(params.output, params.datafn, params.sampling, params.pseeds, params.epoch):
         printf("Already done!")
         return
 
