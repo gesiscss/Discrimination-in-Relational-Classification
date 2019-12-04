@@ -1,6 +1,8 @@
-import pandas as pd
 from collections import Counter
+
 import numpy as np
+import pandas as pd
+
 
 ##################################################################################
 # Networks
@@ -38,6 +40,9 @@ def get_homophily(graph, smooth=1):
 
 
 def get_similitude(graph):
+    if graph.number_of_edges() == 0:
+        return 0.5
+
     h = round(sum([int(graph.node[edge[0]][graph.graph['class']]==graph.node[edge[1]][graph.graph['class']]) for edge in graph.edges()]) / graph.number_of_edges(),1)
     return h
 

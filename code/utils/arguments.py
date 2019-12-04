@@ -1,7 +1,64 @@
 import argparse
 
+def init_batch_mixed_effects():
+    parser = argparse.ArgumentParser()
 
-def init_batch():
+    parser.add_argument('-kind', action='store',
+                        dest='kind',
+                        required=True,
+                        choices=["BAH"],
+                        help='Network source or kind (only synthetic).',
+                        )
+
+    parser.add_argument('-sampling', action='store',
+                        dest='sampling',
+                        required=True,
+                        choices=["nodes", "nedges", "degree", "neighbors", "partial_crawls"],
+                        help='Sampling method (nodes, nedges, degree, neighbors, partial_crawls).',
+                        )
+
+    parser.add_argument('-groups', action='store',
+                        dest='groups',
+                        required=True,
+                        choices=["Hp"],
+                        help='Groups for random effects.',
+                        )
+
+    parser.add_argument('-output', action='store',
+                        dest='output',
+                        required=True,
+                        help='Directory to store all results.')
+
+    parser.add_argument('-njobs', action='store',
+                        dest='njobs',
+                        type=int,
+                        default=1,
+                        help='Number of parallel jobs.')
+
+    parser.add_argument('-verbose', action='store',
+                        dest='verbose',
+                        type=bool,
+                        default=False,
+                        help='Whether to print out or not')
+
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+
+    results = parser.parse_args()
+
+    print("===================================================")
+    print("= ARGUMENTS PASSED:                               =")
+    print("===================================================")
+    print('datafn ..... = ', results.kind)
+    print('sampling ... = ', results.sampling)
+    print('groups ..... = ', results.groups)
+    print('njobs ...... = ', results.njobs)
+    print('verbose .... = ', results.verbose)
+    print('output ..... = ', results.output)
+    print("===================================================")
+
+    return results
+
+def init_batch_collective_classification():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-datafn', action='store',
