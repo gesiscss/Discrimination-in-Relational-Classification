@@ -77,18 +77,24 @@ def _update_pickle_to_dataframe(fn, verbose=True):
     # /results-individual/BAH-N2000-m4-B0.5-H0.8-i1-x1-h0.8-k8.0-km8.0-kM7.9_nedges/P80_evaluation.pickle
 
     obj = load_pickle(fn, verbose)
-    N = int(fn.split("/")[-2].split("-")[1][1:])
-    m = int(fn.split("/")[-2].split("-")[2][1:])
 
-    obj['n'] = int(obj['N'])
-    obj['e'] = int(obj['E'])
-    obj['min_degree'] = int(obj['m'])
+    if 'E' in obj:
+        N = int(fn.split("/")[-2].split("-")[1][1:])
+        m = int(fn.split("/")[-2].split("-")[2][1:])
 
-    obj['N'] = N
-    obj['m'] = m
-    del(obj['E'])
+        obj['n'] = int(obj['N'])
+        obj['e'] = int(obj['E'])
+        obj['min_degree'] = int(obj['m'])
 
-    write_pickle(obj, fn)
+        obj['N'] = N
+        obj['m'] = m
+        del(obj['E'])
+
+        write_pickle(obj, fn)
+    else:
+        if verbose:
+            print(obj)
+            print('{} passed.'.format(fn))
 
 ############################################
 # Class
