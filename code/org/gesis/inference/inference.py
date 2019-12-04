@@ -78,23 +78,30 @@ def _update_pickle_to_dataframe(fn, verbose=True):
 
     obj = load_pickle(fn, verbose)
 
-    if 'E' in obj:
-        N = int(fn.split("/")[-2].split("-")[1][1:])
-        m = int(fn.split("/")[-2].split("-")[2][1:])
+    if fn.split("/")[-2].startswith("BAH"):
+        if 'E' in obj:
+            N = int(fn.split("/")[-2].split("-")[1][1:])
+            m = int(fn.split("/")[-2].split("-")[2][1:])
 
-        obj['n'] = int(obj['N'])
-        obj['e'] = int(obj['E'])
-        obj['min_degree'] = int(obj['m'])
+            obj['n'] = int(obj['N'])
+            obj['e'] = int(obj['E'])
+            obj['min_degree'] = int(obj['m'])
 
-        obj['N'] = N
-        obj['m'] = m
-        del(obj['E'])
+            obj['N'] = N
+            obj['m'] = m
+            del(obj['E'])
 
-        write_pickle(obj, fn)
+            write_pickle(obj, fn)
+        else:
+            if verbose:
+                print('{} passed.'.format(fn))
+                print(obj)
     else:
-        if verbose:
-            print('{} passed.'.format(fn))
-            print(obj)
+        obj['n'] = obj['N']
+        obj['e'] = obj['E']
+        obj['min_degree'] = obj['m']
+        del (obj['E'])
+        write_pickle(obj, fn)
 
 ############################################
 # Class
