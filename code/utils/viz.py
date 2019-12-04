@@ -11,6 +11,7 @@ import matplotlib.patches as patches
 def latex_compatible_text(txt):
     return sympy.latex(sympy.sympify(txt)).replace("_", "\_")
 
+
 def latex_compatible_dataframe(df, latex=True):
     tmp = df.copy()
     if latex:
@@ -22,6 +23,7 @@ def latex_compatible_dataframe(df, latex=True):
     cols['rocauc'] = cols['rocauc'].upper()
     tmp.rename(columns=cols, inplace=True)
     return tmp, cols
+
 
 def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.figure()
@@ -64,7 +66,7 @@ def _plot_lines(x, y, **kwargs):
     ax.axhline(y=0.5, color='grey', linestyle=':', lw=0.8, label="random")
     ax.grid(False)
 
-def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, latex=True, fn=None):
+def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, fn=None):
 
     tmp = df.copy()
 
@@ -117,7 +119,7 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, latex=True, fn=None):
     plt.show()
     plt.close()
 
-def plot_rocauc_vs_pseeds_per_B_N_m(df, columns, latex=True, fn=None):
+def plot_rocauc_vs_pseeds_per_B_N_m(df, columns, fn=None):
 
     tmp = df.copy()
 
@@ -168,19 +170,19 @@ def plot_rocauc_vs_pseeds_per_B_N_m(df, columns, latex=True, fn=None):
     plt.show()
     plt.close()
 
-def plot_bias_vs_pseeds_per_B_H_sampling(df, latex=True, fn=None):
+def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
 
-    tmp, cols = _prepare_plot(df, latex)
+    tmp = df.copy()
 
-    evaluation = cols['bias']
-    xaxis = cols['pseeds']
-    hue = cols['sampling']
+    evaluation = columns['bias']
+    xaxis = columns['pseeds']
+    hue = columns['sampling']
 
     fg = sns.catplot(data=tmp,
                      x=xaxis,
                      y=evaluation,
-                     col=cols['B'],
-                     row=cols['H'],
+                     col=columns['B'],
+                     row=columns['H'],
                      hue=hue,
                      ci='sd',
                      kind='bar',

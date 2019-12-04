@@ -93,8 +93,8 @@ def _update_pickle_to_dataframe(fn, verbose=True):
         write_pickle(obj, fn)
     else:
         if verbose:
-            print(obj)
             print('{} passed.'.format(fn))
+            print(obj)
 
 ############################################
 # Class

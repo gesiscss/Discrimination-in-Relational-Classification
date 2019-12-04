@@ -119,9 +119,9 @@ class Network(object):
 
         self.G.graph['n'] = self.G.number_of_nodes()
         self.G.graph['e'] = self.G.number_of_edges()
+        self.G.graph['min_degree'] = m
         self.G.graph['h'] = h
         self.G.graph['b'] = b
-        self.G.graph['min_degree'] = m
         self.G.graph['k'] = k
         self.G.graph['km'] = km
         self.G.graph['kM'] = kM
