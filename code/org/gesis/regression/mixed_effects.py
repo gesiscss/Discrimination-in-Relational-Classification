@@ -96,6 +96,9 @@ class MixedEffects(object):
 
     def save(self, path):
 
+        fn = os.path.join(path, 'mdf.pickle')
+        write_pickle(self.mdf, fn)
+
         fn = os.path.join(path, 'fe_params.pickle')
         write_pickle(self.fe_params, fn)
 
