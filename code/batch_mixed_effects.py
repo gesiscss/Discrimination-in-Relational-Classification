@@ -38,5 +38,3 @@ if __name__ == "__main__":
     printf("init!")
     run(params)
     printf("done!")
-    print(params.verbose)
-    print(type(params.verbose))

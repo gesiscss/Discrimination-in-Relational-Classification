@@ -65,8 +65,8 @@ def _load_pickle_to_dataframe(fn, verbose=True):
                        'm': int(obj['m']),
                        'B': float(obj['B']),
                        'H': float(obj['H']),
-                       'i': int(obj['i']),
-                       'x': int(obj['x']),
+                       'i': obj['i'] if obj['i'] is None else int(obj['i']),
+                       'x': obj['x'] if obj['x'] is None else int(obj['x']),
                        'sampling': obj['sampling'],
                        'pseeds': float(obj['pseeds']),
                        'epoch': int(obj['epoch']),
@@ -256,13 +256,14 @@ class Inference(object):
         os.chdir(tmp)
 
     @staticmethod
-    def update_all_results(path, prefix, sampling="all", njobs=1, verbose=True):
+    def update_all_results(path, kind, sampling="all", njobs=1, verbose=True):
         s = sampling if sampling != "all" else ""
+        k = kind if kind != "all" else ""
 
         files = [os.path.join(path, folder, fn) for folder in os.listdir(path)
                  for fn in os.listdir(os.path.join(path, folder))
                  if os.path.isdir(os.path.join(path, folder)) and folder.endswith(s)
-                 and folder.startswith(prefix) and fn.endswith(".pickle") and "evaluation" in fn]
+                 and folder.startswith(k) and fn.endswith(".pickle") and "evaluation" in fn]
 
         _ = Parallel(n_jobs=njobs)(delayed(_update_pickle_to_dataframe)(fn, verbose) for fn in files)
         return
