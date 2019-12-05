@@ -35,11 +35,10 @@ def init_batch_mixed_effects():
                         default=1,
                         help='Number of parallel jobs.')
 
-    parser.add_argument('-verbose', action='store',
+    parser.add_argument('-verbose', action='store_true',
                         dest='verbose',
-                        type=bool,
                         default=False,
-                        help='Whether to print out or not')
+                        help='To print out or not')
 
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 

@@ -1,11 +1,12 @@
-from utils.arguments import init_batch_collective_classification
-from org.gesis.network.network import Network
-from org.gesis.sampling.sampling import Sampling
-from org.gesis.local.local import Local
-from org.gesis.relational.relational import Relational
 from org.gesis.inference.inference import Inference
 from org.gesis.inference.inference import is_inference_done
+from org.gesis.local.local import Local
+from org.gesis.network.network import Network
+from org.gesis.relational.relational import Relational
+from org.gesis.sampling.sampling import Sampling
+from utils.arguments import init_batch_collective_classification
 from utils.io import printf
+
 
 def run(params):
 

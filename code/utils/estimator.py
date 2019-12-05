@@ -1,6 +1,8 @@
-import pandas as pd
 from collections import Counter
+
 import numpy as np
+import pandas as pd
+
 
 ##################################################################################
 # Networks
