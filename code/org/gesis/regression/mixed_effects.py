@@ -96,6 +96,9 @@ class MixedEffects(object):
 
     def save(self, path):
 
+        fn = os.path.join(path, 'y_observed.pickle')
+        write_pickle(self.df_test.rocauc, fn)
+
         fn = os.path.join(path, 'mdf.pickle')
         write_pickle(self.mdf, fn)
 

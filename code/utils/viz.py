@@ -32,6 +32,7 @@ def latex_compatible_dataframe(df, latex=True):
 ############################################################################################################
 
 def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
+    plt.close()
     plt.figure()
     lw = 2
     plt.plot(fpr, tpr, color='darkorange', lw=lw, label='ROC curve (area = %0.2f)' % rocauc)
@@ -48,7 +49,7 @@ def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.close()
 
 def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, fn=None):
-
+    plt.close()
     tmp = df.copy()
 
     evaluation = columns['rocauc']
@@ -106,7 +107,8 @@ def plot_rocauc_vs_pseeds_per_B_N_m(df, columns, fn=None):
     col = columns['H']
     hue = columns['network_size']
     toplegend = True
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, bars=False, logy=False)
+    palette = "Paired"
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, bars=False, logy=False, palette=palette)
 
 def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     y = columns['bias']
@@ -115,9 +117,11 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     hue = columns['sampling']
     bars = True
     toplegend = True
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, bars=bars, logy=False)
+    palette = "tab10"
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, bars=bars, logy=False, palette=palette)
 
 def plot_fixed_effects(fe_params, fn=None):
+    plt.close()
     fig = plt.figure(figsize=(3, 3))
     ax = fig.add_subplot(1, 1, 1)
     fe_params.reset_index().plot(ax=ax, kind='bar', x='index', y='LMM')
@@ -137,10 +141,11 @@ def plot_fixed_effects(fe_params, fn=None):
     plt.close()
 
 def plot_random_effects(random_effects, columns, fn=None):
+    plt.close()
     return
 
 def plot_fitted_line(mdf, y_observed, fn=None):
-
+    plt.close()
     fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     y_predict = mdf.fittedvalues
     performance = pd.DataFrame()
@@ -164,6 +169,7 @@ def plot_fitted_line(mdf, y_observed, fn=None):
     plt.close()
 
 def plot_prediction(X, Y, Z, fe_params, random_effects, fn=None):
+    plt.close()
     fig = plt.figure(figsize=(18, 3))
     ax = fig.add_subplot(1, 1, 1)
     if X is not None and Y is not None:
@@ -262,8 +268,8 @@ def _plot_lines(x, y, **kwargs):
     errors = g[y].std()
     ax.errorbar(means.pseeds, means[y], yerr=errors, **kwargs)
 
-def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True), legend=True, toplegend=False, ytickslabels=True, bars=False, logy=False):
-
+def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True), legend=True, toplegend=False, ytickslabels=True, bars=False, logy=False, palette=False):
+    plt.close()
     baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'zscore': 0}
     ymetric = {'ROCAUC': 'ROCAUC', 'bias': 'Bias', 'zscore': 'z-score'}
 
@@ -280,6 +286,7 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True)
                        height=1.2 if tmp[col].nunique() > 1 else 2,
                        aspect=1.2 if tmp[col].nunique() > 1 else 0.75,
                        dropna=False,
+                       palette=palette
                        )
 
     if bars:
