@@ -1,12 +1,17 @@
 # Discrimination in Relational Classification
 Data-driven discrimination in relational classification
 
-## Examples
+## Collective Classification
 | Description | Launch in Binder |
 | :---: | :---: |
-| Collective Classification on a **New** Synthetic Network | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fexample_collective_classification_on_new_synthetic_network.ipynb) |
-| Collective Classification on a **Loaded** Synthetic Network | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fexample_collective_classification_on_existing_synthetic_network.ipynb) |
-| Collective Classification on a Loaded Real-World Network | - |
+| Example on a **New** Synthetic Network | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fexample_collective_classification_on_new_synthetic_network.ipynb) |
+| Example on a **Loaded** Synthetic Network | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fexample_collective_classification_on_existing_synthetic_network.ipynb) |
+| Example on a **Real-World** Network | - |
+
+## Plots
+| Description | Launch in Binder |
+| :---: | :---: |
+| Plots in paper | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fbatch_plots.ipynb) |
 
 
 ## Publications

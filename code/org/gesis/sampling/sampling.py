@@ -50,20 +50,31 @@ class Sampling(object):
         '''
         if self.pseeds <= 0 or self.pseeds >= 1:
             raise Exception("pseeds value exception: {}".format(self.pseeds))
-            
-        if self.method == RANDOM_NODES:
-            self.Gseeds = RandomNodes(G=self.G, pseeds=self.pseeds).extract_subgraph()
-        elif self.method == RANDOM_NEIGHBORS:
-            self.Gseeds = RandomNeighbors(G=self.G, pseeds=self.pseeds).extract_subgraph()
-        elif self.method == RANDOM_EDGES:
-            self.Gseeds = RandomEdges(G=self.G, pseeds=self.pseeds).extract_subgraph()
-        elif self.method == DEGREE_RANK:
-            self.Gseeds = DegreeRank(G=self.G, pseeds=self.pseeds).extract_subgraph()
-        elif self.method == PARTIAL_CRAWLS:
-            self.Gseeds = PartialCrawls(G=self.G, pseeds=self.pseeds, sn=kwargs['sn']).extract_subgraph()
-        else:
-            raise Exception("sampling method does not exist: {}".format(self.method))
-        
+
+        counter = 1
+        while True:
+            if self.method == RANDOM_NODES:
+                self.Gseeds = RandomNodes(G=self.G, pseeds=self.pseeds).extract_subgraph()
+            elif self.method == RANDOM_NEIGHBORS:
+                self.Gseeds = RandomNeighbors(G=self.G, pseeds=self.pseeds).extract_subgraph()
+            elif self.method == RANDOM_EDGES:
+                self.Gseeds = RandomEdges(G=self.G, pseeds=self.pseeds).extract_subgraph()
+            elif self.method == DEGREE_RANK:
+                self.Gseeds = DegreeRank(G=self.G, pseeds=self.pseeds).extract_subgraph()
+            elif self.method == PARTIAL_CRAWLS:
+                self.Gseeds = PartialCrawls(G=self.G, pseeds=self.pseeds, sn=kwargs['sn']).extract_subgraph()
+            else:
+                raise Exception("sampling method does not exist: {}".format(self.method))
+
+            if len(set([self.Gseeds.node[n][self.Gseeds.graph['class']] for n in self.Gseeds.nodes()])) <= 1:
+                print("Try #{}: Invalid sample (only one class)".format(counter))
+                counter += 1
+            else:
+                break
+
+            if counter > 10:
+                raise Exception("We could not find a better sample.")
+
         self.set_graph_metadata()
         
     def set_graph_metadata(self):
