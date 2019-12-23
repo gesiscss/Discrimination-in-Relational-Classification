@@ -231,7 +231,7 @@ def _plot_lines_simple(x, y, **kwargs):
     ax.grid(False)
 
 def _plot_bars(x, y, **kwargs):
-    width = 0.2
+    width = 0.15
 
     ax = plt.gca()
     data = kwargs.pop("data")
@@ -240,14 +240,14 @@ def _plot_bars(x, y, **kwargs):
     errors = g[y].std()
     logy = kwargs.pop("logy")
 
-    span = {'nodes': width * 0, 'nedges': width * 1, 'degree': width * 2, 'partialcrawls': width * 3}
+    span = {'nodes': width * 0, 'neighbors': width * 1, 'nedges': width * 2, 'degree': width * 3, 'partialcrawls': width * 4}
     sampling = data.sampling.unique()[0].replace("_", "").replace("\\", "")
     span = span[sampling]
 
     xticks = np.arange(1, means.pseeds.nunique() + 1, 1)
     ax.bar(xticks + span, means[y], width, yerr=errors, bottom=0, **kwargs)
 
-    ax.set_xticks(xticks + width)
+    ax.set_xticks(xticks + width + width)
     ax.set_xticklabels(sorted(data.pseeds.astype(np.int).unique()))
 
     if logy:
