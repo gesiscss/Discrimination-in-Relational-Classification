@@ -112,8 +112,8 @@ def plot_rocauc_vs_pseeds_per_B_N_m(df, columns, fn=None):
 
 def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     y = columns['bias']
-    row = columns['B']
-    col = columns['H']
+    row = columns['H']
+    col = columns['B']
     hue = columns['sampling']
     bars = True
     toplegend = True
