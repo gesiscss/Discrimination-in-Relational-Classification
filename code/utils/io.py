@@ -2,6 +2,7 @@ import os
 import networkx as nx
 import pickle
 import datetime
+import pandas as pd
 
 def create_folder(path, changeto=False):
     if not os.path.exists(path):
@@ -52,6 +53,24 @@ def load_gpickle(datafn):
     else:
         raise FileNotFoundError("{} does not exist.".format(datafn))
     return graph
+
+def write_csv(df, fn):
+    try:
+        df.to_csv(fn, index=False)
+        print("{} saved!".format(fn))
+    except Exception as ex:
+        print(ex)
+
+
+def load_csv(fn):
+    if os.path.exists(fn):
+        try:
+            df = pd.read_csv(fn, index_col=False)
+        except Exception as ex:
+            print(ex)
+    else:
+        raise FileNotFoundError("{} does not exist.".format(fn))
+    return df
 
 def printf(txt):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

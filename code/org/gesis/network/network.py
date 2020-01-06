@@ -13,6 +13,7 @@ from utils.estimator import get_homophily
 from utils.estimator import get_minority_fraction
 from utils.estimator import get_degrees
 from utils.estimator import get_min_degree
+from utils.estimator import get_density
 from utils.estimator import get_param
 from utils.io import load_gpickle
 
@@ -46,12 +47,14 @@ class Network(object):
             b = get_minority_fraction(self.G)
             k,km,kM = get_degrees(self.G)
             m = get_min_degree(self.G)
+            density = get_density(self.G)
             i = 1 if 'i' not in kwargs else kwargs['i']
             x = 1 if 'x' not in kwargs else kwargs['x']
 
             self.G.graph['kind'] = self.kind
             self.G.graph['N'] = kwargs['N']
             self.G.graph['m'] = kwargs['m']
+            self.G.graph['density'] = density
             self.G.graph['B'] = kwargs['B']
             self.G.graph['H'] = kwargs['H']
             self.G.graph['i'] = i
@@ -107,11 +110,13 @@ class Network(object):
         b = get_minority_fraction(self.G)
         k, km, kM = get_degrees(self.G)
         m = get_min_degree(self.G)
+        density = get_density(self.G)
 
         self.G.graph["fullname"] = os.path.basename(datafn).replace(".gpickle","")
         self.G.graph['kind'] = self.kind
         self.G.graph['N'] = get_param(datafn, "N") or self.G.number_of_nodes()
         self.G.graph['m'] = get_param(datafn, "m") or m
+        self.G.graph['density'] = density
         self.G.graph['B'] = get_param(datafn, "B") or b
         self.G.graph['H'] = get_param(datafn, "H") or H
         self.G.graph['i'] = get_param(datafn, "i")

@@ -3,9 +3,10 @@
 ############################################
 import os
 import time
-
+import glob
 import pandas as pd
 from joblib import Parallel, delayed
+
 ############################################
 # Local dependencies
 ############################################
@@ -29,6 +30,9 @@ RELAXATION = "relaxation"
 # Functions
 ############################################
 
+
+### Inference
+
 def is_inference_done(root, datafn, sampling, pseeds, postfix):
     output = os.path.join(root, "{}_{}".format(os.path.basename(datafn).replace(".gpickle", ""), sampling))
     f1 = get_graph_filename(output, pseeds, postfix)
@@ -37,32 +41,41 @@ def is_inference_done(root, datafn, sampling, pseeds, postfix):
 
     return os.path.exists(f1) and os.path.exists(f2) and os.path.exists(f3)
 
-
 def get_graph_filename(output, pseeds, postfix):
     if pseeds < 1:
         pseeds = int(round(pseeds * 100, 1))
     return os.path.join(output, "P{}_graph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
-
 
 def get_samplegraph_filename(output, pseeds, postfix):
     if pseeds < 1:
         pseeds = int(round(pseeds * 100, 1))
     return os.path.join(output, "P{}_samplegraph{}.gpickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
 
-
 def get_evaluation_filename(output, pseeds, postfix):
     if pseeds < 1:
         pseeds = int(round(pseeds * 100, 1))
     return os.path.join(output, "P{}_evaluation{}.pickle".format(pseeds, '_{}'.format(postfix) if postfix is not None else ""))
 
+### Inference Summary (all)
+
+def get_inference_summary_fn(output, kind, LC, RC, CI, sampling):
+    return os.path.join(output, "summary_{}_LC{}_RC{}_CI{}_{}.csv".format(kind,LC,RC,CI,sampling))
+
+def is_inference_summary_done(output, kind, LC, RC, CI, sampling):
+    fn = get_inference_summary_fn(output, kind, LC, RC, CI, sampling)
+    return os.path.exists(fn)
+
+
+### Handlers
 
 def _load_pickle_to_dataframe(fn, verbose=True):
     obj = load_pickle(fn, verbose)
-    columns = ['kind', 'N', 'm', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias', 'lag']
+    columns = ['kind', 'N', 'm', 'density', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias', 'lag','p0','p1','cp00','cp01','cp11','cp10']
 
     df = pd.DataFrame({'kind': fn.split("/")[-2].split("-")[0].split("_")[0],
                        'N': int(obj['N']),
                        'm': int(obj['m']),
+                       'density': float(obj['density']),
                        'B': float(obj['B']),
                        'H': float(obj['H']),
                        'i': obj['i'] if obj['i'] is None else int(obj['i']),
@@ -78,7 +91,14 @@ def _load_pickle_to_dataframe(fn, verbose=True):
                        'ccm': obj['ccm'],
                        'ccM': obj['ccM'],
                        'bias': obj['bias'],
-                       'lag': obj['lag']}, columns=columns, index=[0])
+                       'lag': obj['lag'],
+                       'p0': obj['p0'],
+                       'p1': obj['p1'],
+                       'cp00': obj['cp00'],
+                       'cp01': obj['cp01'],
+                       'cp11': obj['cp11'],
+                       'cp10': obj['cp10'],
+                       }, columns=columns, index=[0])
     return df
 
 
@@ -132,6 +152,7 @@ class Inference(object):
         self.fpr = None
         self.tpr = None
         self.duration = None
+        self.instance = None
 
     def predict(self, G, local_model, relational_model):
         '''
@@ -145,11 +166,11 @@ class Inference(object):
 
         start_time = time.time()
         if self.method == RELAXATION:
-            Relaxation(G,
-                       local_model,
-                       relational_model).predict()
+            self.instance = Relaxation(self.G, local_model, relational_model)
         else:
             raise Exception("inference method does not exist: {}".format(self.method))
+
+        self.instance.predict()
         self.duration = time.time() - start_time
 
     def evaluation(self):
@@ -228,6 +249,7 @@ class Inference(object):
         obj = {}
         obj['N'] = self.G.graph['N']
         obj['m'] = self.G.graph['m']
+        obj['density'] = self.G.graph['density']
         obj['B'] = self.G.graph['B']
         obj['H'] = self.G.graph['H']
         obj['i'] = self.G.graph['i']
@@ -240,6 +262,13 @@ class Inference(object):
         obj['n'] = self.G.number_of_nodes()
         obj['e'] = self.G.number_of_edges()
         obj['min_degree'] = self.G.graph['min_degree']
+
+        obj['p0'] = self.instance.local_model.prior.iloc[0]
+        obj['p1'] = self.instance.local_model.prior.iloc[1]
+        obj['cp00'] = self.instance.relational_model.condprob.iloc[0,0]
+        obj['cp01'] = self.instance.relational_model.condprob.iloc[0,1]
+        obj['cp11'] = self.instance.relational_model.condprob.iloc[1,1]
+        obj['cp10'] = self.instance.relational_model.condprob.iloc[1,0]
 
         obj['rocauc'] = self.rocauc
         obj['mae'] = self.mae
@@ -257,26 +286,21 @@ class Inference(object):
 
     @staticmethod
     def update_all_results(path, kind, sampling="all", njobs=1, verbose=True):
-        s = sampling if sampling != "all" else ""
-        k = kind if kind != "all" else ""
+        s = sampling if sampling != "all" else "*"
+        k = kind if kind != "all" else "*"
 
-        files = [os.path.join(path, folder, fn) for folder in os.listdir(path)
-                 for fn in os.listdir(os.path.join(path, folder))
-                 if os.path.isdir(os.path.join(path, folder)) and folder.endswith(s)
-                 and folder.startswith(k) and fn.endswith(".pickle") and "evaluation" in fn]
+        files = glob.glob(output + '/{}{}/*_evaluation_*.pickle'.format(k, s), recursive=True)
 
         _ = Parallel(n_jobs=njobs)(delayed(_update_pickle_to_dataframe)(fn, verbose) for fn in files)
         return
 
     @staticmethod
-    def get_all_results_as_dataframe(path, kind, sampling="all", njobs=1, verbose=True):
-        s = sampling if sampling != "all" else ""
-        k = kind if kind != "all" else ""
+    def get_all_results_as_dataframe(output, kind, LC='prior', RC='nBC', CI='relaxation', sampling="all", njobs=1, verbose=True):
+        s = sampling if sampling != "all" else "*"
+        k = kind if kind != "all" else "*"
 
-        files = [os.path.join(path, folder, fn) for folder in os.listdir(path)
-                 for fn in os.listdir(os.path.join(path, folder))
-                 if os.path.isdir(os.path.join(path, folder)) and folder.endswith(s)
-                 and folder.startswith(k) and fn.endswith(".pickle") and "evaluation" in fn]
+        exp = '/{}{}{}/*_evaluation_*.pickle'.format(k, '*' if k!='*' and s!='*' else '', s)
+        files = glob.glob(output + exp, recursive=True)
 
         results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn, verbose) for fn in files)
         df = pd.concat(results).reset_index(drop=True)

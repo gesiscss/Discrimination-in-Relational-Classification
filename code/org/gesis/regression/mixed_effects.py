@@ -117,4 +117,53 @@ class MixedEffects(object):
         fn = os.path.join(path, 'Z.pickle')
         write_pickle(self.Z, fn)
 
+        fn = os.path.join(path, 'params.pickle')
+        write_pickle({'formula': self.formula,
+                      'dependent_var': self.dependent_var,
+                      'predictors': self.predictors,
+                      'groups': self.groups,
+                      'group_vars': self.group_vars,
+                      'all_attributes': self.all_attributes}, fn)
 
+    @staticmethod
+    def predict_one(df, mdf, groups):
+
+        fe_params = mdf.fe_params
+        random_effects = pd.DataFrame(mdf.random_effects)
+
+        # fixed effects
+        fe = 0
+        for var, value in fe_params.iteritems():
+            if var not in df:
+                fe += value
+            else:
+                fe += value * df.loc[var]
+
+        # random effects
+        group = []
+        for var in groups:
+            group.append(str(df.loc[var]))
+        group = '_'.join(group)
+
+        if group not in random_effects.columns:
+            group = group.split('_')
+            res = []
+
+            for i, var in enumerate(groups):
+                tmp = df.loc[var] * 10 ** 10 // 10 ** (10 - 1) / 10 ** 1
+                new_group = group.copy()
+                for value in [tmp, round(tmp + 0.1, 1)]:
+                    new_group[i] = str(value)
+                    try:
+                        res.append(random_effects.loc['Group', '_'.join(new_group)])
+                    except Exception as ex:
+                        pass
+
+            re = np.mean(res)
+        else:
+            re = (random_effects.loc['Group', group])
+
+        # group variance
+        gv = mdf.cov_re.values[0][0]
+
+        return fe + re + gv

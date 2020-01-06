@@ -8,8 +8,8 @@ from utils.io import create_folder
 from utils.io import printf
 
 X_var = "rocauc"
-y_vars = ['N','m','B']
-ALL_attributes = ['N','m','B','H','pseeds']
+y_vars = ['N','density','B']
+ALL_attributes = ['N','density','B','H','pseeds']
 
 def run(params):
 

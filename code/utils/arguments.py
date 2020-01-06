@@ -1,5 +1,75 @@
 import argparse
 
+def init_batch_summary():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-kind', action='store',
+                        dest='kind',
+                        required=True,
+                        choices=["all","BAH","Caltech","Swarthmore","USF","Wikipedia"],
+                        help='Kind of networkx graph.')
+
+    parser.add_argument('-LC', action='store',
+                        dest='LC',
+                        choices=["prior"],
+                        required=True,
+                        help='Local classifier.')
+
+    parser.add_argument('-RC', action='store',
+                        dest='RC',
+                        choices=["nBC"],
+                        required=True,
+                        help='Relational classifier.')
+
+    parser.add_argument('-CI', action='store',
+                        dest='CI',
+                        choices=["relaxation"],
+                        required=True,
+                        help='Collective inference algorithm,')
+
+    parser.add_argument('-sampling', action='store',
+                        dest='sampling',
+                        required=True,
+                        choices=["all","nodes", "nedges", "degree", "neighbors", "partial_crawls"],
+                        help='Sampling method (nodes, nedges, degree, neighbors, partial_crawls, all).',
+                        )
+
+    parser.add_argument('-njobs', action='store',
+                        dest='njobs',
+                        type=int,
+                        default=1,
+                        help='Number of parallel jobs.')
+
+    parser.add_argument('-output', action='store',
+                        dest='output',
+                        required=True,
+                        help='Directory to store all results.')
+
+    parser.add_argument('-overwrite', action='store_true',
+                        dest='overwrite',
+                        default=False,
+                        help='Overwrite or not file.')
+
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+
+    results = parser.parse_args()
+
+    print("===================================================")
+    print("= ARGUMENTS PASSED:                               =")
+    print("===================================================")
+    print('kind ....... = ', results.kind)
+    print('LC ......... = ', results.LC)
+    print('RC ......... = ', results.RC)
+    print('CI ......... = ', results.CI)
+    print('sampling ... = ', results.sampling)
+    print('njobs ...... = ', results.njobs)
+    print('output ..... = ', results.output)
+    print('overwrite .. = ', results.overwrite)
+    print("===================================================")
+
+    return results
+
+
 def init_batch_mixed_effects():
     parser = argparse.ArgumentParser()
 

@@ -16,6 +16,7 @@ from utils.estimator import get_minority_fraction
 from utils.estimator import get_similitude
 from utils.estimator import get_homophily
 from utils.estimator import get_degrees
+from utils.estimator import get_density
 
 ############################################
 # Constants
@@ -85,6 +86,7 @@ class Sampling(object):
         self.Gseeds.graph['method'] = self.method
         nx.set_node_attributes(G=self.G, name='seed', values={n:n in self.Gseeds for n in self.G.nodes()})
         self.Gseeds.graph['m'] = get_min_degree(self.Gseeds)
+        self.Gseeds.graph['density'] = get_density(self.Gseeds)
         self.Gseeds.graph['N'] = self.Gseeds.number_of_nodes()
         self.Gseeds.graph['B'] = get_minority_fraction(self.Gseeds)
         self.Gseeds.graph['H'] = get_homophily(self.Gseeds)

@@ -18,7 +18,7 @@ def latex_compatible_text(txt):
 def latex_compatible_dataframe(df, latex=True):
     tmp = df.copy()
     if latex:
-        cols = {c:c if c=="N" else sympy.latex(sympy.sympify(c)).replace("_","\_") for c in tmp.columns}
+        cols = {c:c if c=="N" or c.startswith("MSE") else sympy.latex(sympy.sympify(c)).replace("_","\_") for c in tmp.columns}
         if 'sampling' in tmp.columns:
             tmp.sampling = tmp.apply(lambda row: row.sampling.replace('_', '\_'), axis=1)
     else:
@@ -78,10 +78,11 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, fn=None):
             aa[1].set_xlabel("")
 
         if coord[0] == 1:
-            labels = aa[1].get_xticklabels()  # get x labels
-            for i, l in enumerate(labels):
-                if (i not in [1, 5, 9]): labels[i] = ''  # skip even labels
-            aa[1].set_xticklabels(labels, rotation=0)
+            _set_minimal_xticklabels(aa[1])
+            # labels = aa[1].get_xticklabels()  # get x labels
+            # for i, l in enumerate(labels):
+            #     if (i not in [1, 5, 9]): labels[i] = ''  # skip even labels
+            # aa[1].set_xticklabels(labels, rotation=0)
 
         aa[1].axhline(0.5, lw=0.5, c="grey", ls="--")
 
@@ -101,24 +102,62 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, fn=None):
     plt.show()
     plt.close()
 
-def plot_rocauc_vs_pseeds_per_B_N_m(df, columns, fn=None):
+def plot_rocauc_vs_pseeds_per_H_B_N_m(df, columns, fn=None):
     y = columns['rocauc']
     row = columns['B']
     col = columns['H']
     hue = columns['network_size']
     toplegend = True
     palette = "Paired"
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, bars=False, logy=False, palette=palette)
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, kind="line", logy=False, palette=palette)
+
+
+def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
+    y = columns['rocauc']
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
+    hue_order = ['nodes','neighbors','nedges','degree','partial\_crawls']
+    toplegend = True
+    palette = "tab10"
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=False, toplegend=toplegend, ytickslabels=True, kind="line", logy=False, palette=palette)
+
+
+def plot_rocauc_vs_MSE_per_H_B_sampling(df, columns, fn=None):
+    y = columns['rocauc']
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
+    x = columns['MSE']
+    hue_order = ['nodes','neighbors','nedges','degree','partial\_crawls']
+    toplegend = True
+    palette = "tab10"
+    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False, toplegend=toplegend, ytickslabels=True, kind="scatter", logy=False, palette=palette)
+
+def plot_MSEp1_vs_MSEcpDiff_per_H_B_sampling(df, columns, fn=None):
+    x = columns['MSEcpDiff']
+    y = columns['MSEp1']
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
+    hue_order = ['nodes','neighbors','nedges','degree','partial\_crawls']
+    toplegend = True
+    palette = "tab10"
+    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=True, toplegend=toplegend, ytickslabels=True, kind="scatter", logy=False, palette=palette)
+
+
 
 def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     y = columns['bias']
     row = columns['H']
     col = columns['B']
     hue = columns['sampling']
-    bars = True
+    hue_order = ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls']
     toplegend = True
     palette = "tab10"
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, bars=bars, logy=False, palette=palette)
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, kind="bar", logy=False, palette=palette)
+
+
 
 def plot_fixed_effects(fe_params, fn=None):
     plt.close()
@@ -140,9 +179,29 @@ def plot_fixed_effects(fe_params, fn=None):
     plt.show()
     plt.close()
 
-def plot_random_effects(random_effects, columns, fn=None):
+def plot_random_effects(random_effects, group_vars, fn=None):
     plt.close()
-    return
+
+    tmp = random_effects.copy()
+    tmp2 = pd.DataFrame(tmp.index.astype(str).str.split('_').tolist(), columns=group_vars, index=tmp.index)
+    tmp = pd.concat([tmp, tmp2], axis=1, sort=False)
+
+    fg = sns.catplot(data=tmp, x='H', y='LMM', hue='pseeds',
+                     height=3.0, aspect=1.0,
+                     palette=RdBu_11.mpl_colors,
+                     kind='swarm'
+                     )
+
+    _set_minimal_xticklabels(fg.ax)
+    fg.ax.axhline(0.0, ls="--", c='grey', lw=1.0)
+    fg.ax.set_ylabel("")
+
+    if fn is not None:
+        fg.savefig(fn, bbox_inches='tight')
+        print('{} saved!'.format(fn))
+
+    plt.show()
+    plt.close()
 
 def plot_fitted_line(mdf, y_observed, fn=None):
     plt.close()
@@ -200,6 +259,39 @@ def plot_prediction(X, Y, Z, fe_params, random_effects, fn=None):
     plt.show()
     plt.close()
 
+def plot_model_vs_data(df, fn):
+    plt.close()
+    tmp = df.copy()
+    tmp.loc[:,'pseeds'] = tmp.apply(lambda row: int(row.pseeds*100), axis=1)
+    fg = sns.catplot(data=tmp,
+                     kind='point',
+                     height=2.0,
+                     aspect=1.0,
+                     palette="Paired",
+                     col='dataset', x='pseeds', y="ROCAUC",
+                     hue='source',hue_order=['model','data'])
+
+    fg.set_titles("{col_name}")
+    subfigurelabel = ['a','b','c','d','e','f']
+    subfigurelabel = ['a','b','c','d','e','f']
+
+    for i,ax in enumerate(fg.axes.flatten()):
+        ax.axhline(0.5, ls="--", c='grey', lw=1.0)
+        ax.set_ylim(0.4, 1)
+        _set_minimal_xticklabels(ax)
+
+        dataset = ax.get_title()
+        _tmp = tmp.query("dataset==@dataset")
+        ax.text(s="H={}\nB={}".format(_tmp.H.unique()[0],_tmp.B.unique()[0]),x=1,y=0.8)
+
+        ax.set_title("{}) {}".format(subfigurelabel[i],dataset))
+
+    if fn is not None:
+        fg.savefig(fn, bbox_inches='tight')
+        print('{} saved!'.format(fn))
+
+    plt.show()
+    plt.close()
 
 ############################################################################################################
 # Setup / Handlers
@@ -221,6 +313,12 @@ def plot_setup(latex=True):
         sns.set_context("paper", rc={"lines.linewidth": lw})
     else:
         sns.set_context('paper', font_scale=1.2)
+
+def _set_minimal_xticklabels(ax):
+    labels = ax.get_xticklabels()  # get x labels
+    for i, l in enumerate(labels):
+        if (i not in [1, 5, 9]): labels[i] = ''  # skip even labels
+    ax.set_xticklabels(labels, rotation=0)
 
 def _plot_lines_simple(x, y, **kwargs):
     ax = plt.gca()
@@ -257,27 +355,32 @@ def _plot_lines(x, y, **kwargs):
 
     ax = plt.gca()
     data = kwargs.pop("data")
-    g = data.groupby(['B', 'H', 'pseeds', 'sampling'])  # 'N',m
+    g = data.groupby(['B', 'H', x, 'sampling'])  # 'N',m
     means = g[y].mean().reset_index()
 
     if 'errors' in kwargs:
         if not kwargs.pop('errors'):
-            ax.plot(means.pseeds, means[y], **kwargs)
+            ax.plot(means[x], means[y], **kwargs)
             return
 
     errors = g[y].std()
-    ax.errorbar(means.pseeds, means[y], yerr=errors, **kwargs)
+    ax.errorbar(means[x], means[y], yerr=errors, **kwargs)
 
-def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True), legend=True, toplegend=False, ytickslabels=True, bars=False, logy=False, palette=False):
+def _plot_scatter(x, y, **kwargs):
+
+    ax = plt.gca()
+    data = kwargs.pop("data")
+    ax.scatter(data[x], data[y], **kwargs)
+
+
+def _plot_by(df, x, y, row, col, hue, hue_order, fn=None, ylabel=(True,True), legend=True, toplegend=False, ytickslabels=True, kind="line", logy=False, palette=False):
     plt.close()
-    baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'zscore': 0}
-    ymetric = {'ROCAUC': 'ROCAUC', 'bias': 'Bias', 'zscore': 'z-score'}
+    baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'MSE': 0}
+    metric = {'ROCAUC': 'ROCAUC', 'bias': 'Bias',
+               'MSEp1':r"$(\theta_{min} - P_{min})^2$",
+               'MSEcpDiff':r"$(\theta_{maj|maj} - P_{maj|maj})^2 - (\theta_{min|min} - P_{min|min})^2$"}
 
-    if bars:
-        tmp = df.query("pseeds < 40").copy()
-    else:
-        tmp = df.copy()
-
+    tmp = df.copy()
     tmp.loc[:,'pseeds'] = tmp.apply(lambda row: int(round(row['pseeds']*100,0)), axis=1)
 
     fg = sns.FacetGrid(data=tmp, col=col, row=row, hue=hue,
@@ -289,10 +392,12 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True)
                        palette=palette
                        )
 
-    if bars:
-        fg = fg.map_dataframe(_plot_bars, 'pseeds', y, logy=logy)
-    else:
-        fg = fg.map_dataframe(_plot_lines, 'pseeds', y, marker='o', lw=1.0, alpha=1.0)
+    if kind == 'bar':
+        fg = fg.map_dataframe(_plot_bars, x, y, logy=logy)
+    elif kind == 'line':
+        fg = fg.map_dataframe(_plot_lines, x, y, marker='o', lw=1.0, alpha=1.0)
+    elif kind == 'scatter':
+        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.3)
 
     if legend:
         if not toplegend:
@@ -312,10 +417,14 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True)
         except:
             pass
 
+        if 'MSE' in x:
+            ax.axvline(baseline['MSE'], lw=1, ls='--', c='grey')
+        if 'MSE' in y:
+            ax.axhline(baseline['MSE'], lw=1, ls='--', c='grey')
+
         ax.set_xlabel('')
         ax.set_ylabel('')
 
-        # if not bars:
         if ylabel in ['ROCAUC', 'bias']:
             ax.set_ylim((-0.1, 1.1))
 
@@ -323,34 +432,43 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True)
             ax.set_yscale('log')
 
     try:
+        # xlabel
+        fg.axes[-1, int(round(tmp[col].nunique()/2,0))-1].set_xlabel(x if x not in metric else metric[x])
+    except Exception as ex:
+        print(ex)
+        # # xlabel
+        # fg.axes[0, 1].set_xlabel(x)
 
-        fg.axes[-1, int(round(tmp[col].nunique()/2,0))-1].set_xlabel('pseeds')
-
+    try:
+        # ylabel
         if ylabel[0]:
             if y == 'bias':
                 fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
             else:
-                fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(ymetric[y])
+                fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(y if y not in metric else metric[y])
 
-        if not ylabel[1]:
-            for r in np.arange(0,df[row].nunique()):
-                fg.axes[r, -1].texts = []
+    except Exception as ex:
+        print(ex)
+        #
+        # if y == 'bias':
+        #     fg.axes[0, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
+        # else:
+        #     try:
+        #         fg.axes[0, 0].set_ylabel(metric[y])
+        #     except:
+        #         fg.axes[0, 0].set_ylabel(y)
+        # pass
 
-        if not ytickslabels:
-            for r in  np.arange(0,df[row].nunique()):
-                for c in np.arange(0,df[col].nunique()):
-                    fg.axes[r, c].set_yticklabels([])
+    # ylabel on the right
+    if not ylabel[1]:
+        for r in np.arange(0, df[row].nunique()):
+            fg.axes[r, -1].texts = []
 
-    except:
-        fg.axes[0, 1].set_xlabel('pseeds')
-        if y == 'bias':
-            fg.axes[0, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
-        else:
-            try:
-                fg.axes[0, 0].set_ylabel(ymetric[y])
-            except:
-                fg.axes[0, 0].set_ylabel(y)
-        pass
+    # ytickslabels
+    if not ytickslabels:
+        for r in np.arange(0, df[row].nunique()):
+            for c in np.arange(0, df[col].nunique()):
+                fg.axes[r, c].set_yticklabels([])
 
     plt.subplots_adjust(hspace=0.05, wspace=0.05)
 
@@ -361,11 +479,8 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True,True)
     plt.show()
     plt.close()
 
-
-
-
-
-
+def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, ytickslabels=True, kind="line", logy=False, palette=False):
+    _plot_by(df, 'pseeds', y, row, col, hue, hue_order, fn, ylabel, legend, toplegend, ytickslabels, kind, logy, palette)
 
 
 
