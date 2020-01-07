@@ -127,6 +127,7 @@ def init_batch_mixed_effects():
 
     return results
 
+
 def init_batch_collective_classification():
     parser = argparse.ArgumentParser()
 
@@ -177,6 +178,12 @@ def init_batch_collective_classification():
                         type=int,
                         help='Class value to ignore (as int).')
 
+    parser.add_argument('-sn', action='store',
+                        dest='sn',
+                        type=float,
+                        default=None,
+                        help='Super node size (partial crawls algo).')
+
     parser.add_argument('-output', action='store',
                         dest='output',
                         required=True,
@@ -195,6 +202,7 @@ def init_batch_collective_classification():
     print('CI ......... = ', results.CI)
     print('sampling ... = ', results.sampling)
     print('pseeds ..... = ', results.pseeds)
+    print('sn ......... = ', results.sn)
     print('epoch ...... = ', results.epoch)
     print('ignoreInt .. = ', results.ignoreInt)
     print('output ..... = ', results.output)

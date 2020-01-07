@@ -25,7 +25,7 @@ def run(params):
     print("")
     printf("*** Sample ***")
     sam = Sampling(params.sampling, net.G, params.pseeds, params.epoch)
-    sam.extract_subgraph()
+    sam.extract_subgraph(sn=params.sn)
     sam.info()
 
     ### 3. Local Modeling

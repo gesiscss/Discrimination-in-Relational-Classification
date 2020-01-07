@@ -230,7 +230,7 @@ class Inference(object):
         except:
             output = self.G.graph['name']
 
-        output = "{}_{}".format(output, self.Gseeds.graph["method"])
+        output = "{}_{}{}".format(output, self.Gseeds.graph["method"],'' if self.Gseeds.graph["method"]!='partial_crawls' else '_sn{}'.format(self.Gseeds.graph['sn']))
         create_folder(output)
 
         # pseeds as percentage
@@ -285,7 +285,7 @@ class Inference(object):
         os.chdir(tmp)
 
     @staticmethod
-    def update_all_results(path, kind, sampling="all", njobs=1, verbose=True):
+    def update_all_results(output, kind, sampling="all", njobs=1, verbose=True):
         s = sampling if sampling != "all" else "*"
         k = kind if kind != "all" else "*"
 
@@ -299,7 +299,7 @@ class Inference(object):
         s = sampling if sampling != "all" else "*"
         k = kind if kind != "all" else "*"
 
-        exp = '/{}{}{}/*_evaluation_*.pickle'.format(k, '*' if k!='*' and s!='*' else '', s)
+        exp = '/{}{}{}/*_evaluation_*.pickle'.format(k, '*' if k!='*' and s!='*' else '', s if s=='*' or s!='partial_crawls' else '{}_*'.format(s))
         files = glob.glob(output + exp, recursive=True)
 
         results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn, verbose) for fn in files)

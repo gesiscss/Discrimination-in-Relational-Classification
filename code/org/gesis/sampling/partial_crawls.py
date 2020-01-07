@@ -28,7 +28,9 @@ class PartialCrawls(object):
         '''
         self.create_super_node()
         edges = self.get_edges_from_tours()
-        return self.G.edge_subgraph(edges).copy()
+        Gseeds = self.G.edge_subgraph(edges).copy()
+        Gseeds.graph['sn'] = self.sn
+        return Gseeds
     
     def create_super_node(self):
         '''

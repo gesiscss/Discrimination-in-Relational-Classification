@@ -24,6 +24,7 @@ def run(params):
                                                         verbose=True)
     print(df_results.head(5))
     print(df_results.shape)
+    print(df_results.sampling.unique())
     print()
 
     ### 2. Global estimates
@@ -44,6 +45,7 @@ def run(params):
 
     print(df_results.sample(5))
     print(df_results.shape)
+    print(df_results.sampling.unique())
     print()
 
     printf("done!")
