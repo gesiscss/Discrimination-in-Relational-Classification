@@ -117,7 +117,7 @@ def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
     row = columns['H']
     col = columns['B']
     hue = columns['sampling']
-    
+
     hue_order = []
     hue_list = df[hue].unique()
     for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
