@@ -117,7 +117,13 @@ def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
     row = columns['H']
     col = columns['B']
     hue = columns['sampling']
-    hue_order = ['nodes','neighbors','nedges','degree','partial\_crawls']
+    
+    hue_order = []
+    hue_list = df[hue].unique()
+    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
+        if ho in hue_list:
+            hue_order.append(ho)
+
     toplegend = True
     palette = "tab10"
     _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=False, toplegend=toplegend, ytickslabels=True, kind="line", logy=False, palette=palette)
@@ -129,7 +135,13 @@ def plot_MSE_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
     col = columns['B']
     hue = columns['sampling']
     x = columns['pseeds']
-    hue_order = ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls']
+
+    hue_order = []
+    hue_list = df[hue].unique()
+    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
+        if ho in hue_list:
+            hue_order.append(ho)
+
     toplegend = True
     palette = "tab10"
     _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False,
@@ -142,7 +154,13 @@ def plot_rocauc_vs_MSE_per_H_B_sampling(df, columns, fn=None):
     col = columns['B']
     hue = columns['sampling']
     x = columns['MSE']
-    hue_order = ['nodes','neighbors','nedges','degree','partial\_crawls']
+
+    hue_order = []
+    hue_list = df[hue].unique()
+    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
+        if ho in hue_list:
+            hue_order.append(ho)
+
     toplegend = True
     palette = "tab10"
     _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False, toplegend=toplegend, ytickslabels=True, kind="scatter", logy=False, palette=palette)
@@ -153,7 +171,13 @@ def plot_MSEp1_vs_MSEcpDiff_per_H_B_sampling(df, columns, fn=None):
     row = columns['H']
     col = columns['B']
     hue = columns['sampling']
-    hue_order = ['nodes','neighbors','nedges','degree','partial\_crawls']
+
+    hue_order = []
+    hue_list = df[hue].unique()
+    for ho in ['nodes','neighbors','nedges','degree','partial\_crawls','partial_crawls']:
+        if ho in hue_list:
+            hue_order.append(ho)
+
     toplegend = True
     palette = "tab10"
     _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=True, toplegend=toplegend, ytickslabels=True, kind="scatter", logy=False, palette=palette)
@@ -165,7 +189,13 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     row = columns['H']
     col = columns['B']
     hue = columns['sampling']
-    hue_order = ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls']
+
+    hue_order = []
+    hue_list = df[hue].unique()
+    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
+        if ho in hue_list:
+            hue_order.append(ho)
+
     toplegend = True
     palette = "tab10"
     _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, kind="bar", logy=False, palette=palette)
