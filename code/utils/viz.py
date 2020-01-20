@@ -7,6 +7,33 @@ import sympy
 from matplotlib import rc
 from palettable.colorbrewer.diverging import RdBu_11
 
+############################################################################################################
+# Constants
+############################################################################################################
+
+# Available metrics
+
+METRIC = {'ROCAUC': 'ROCAUC', 'bias': 'Bias',
+
+          # Estimation Error: estimation - observed
+          'EEp1': r'$P_{min} - \theta_{min}$',
+          'EEp0': r'$P_{maj} - \theta_{maj}$',
+          'EEcp11': r'$P_{min|min} - \theta_{min|min}$',
+          'EEcp01': r'$P_{maj|min} - \theta_{maj|min}$',
+          'EEcp00': r'$P_{maj|maj} - \theta_{maj|maj}$',
+          'EEcp10': r'$P_{min|maj} - \theta_{min|maj}$',
+
+          # Squared Error: squared estimation error (estimation - observed)^2
+          'SEp1': r'$(P_{min} - \theta_{min})^2$',
+          'SEp0': r'$(P_{maj} - \theta_{maj})^2$',
+          'SEcp11': r'$(P_{min|min} - \theta_{min|min})^2$',
+          'SEcp00': r'$(P_{maj|maj} - \theta_{maj|maj})^2$',
+
+          # Comparing the estimation errors
+          'SEcpDiff': r"$(\theta_{maj|maj} - P_{maj|maj})^2 - (\theta_{min|min} - P_{min|min})^2$",
+          'SEcpSum': r"$(\theta_{maj|maj} - P_{maj|maj})^2 + (\theta_{min|min} - P_{min|min})^2$",
+          }
+
 
 ############################################################################################################
 # Latex compatible
@@ -283,8 +310,7 @@ def plot_SE_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
 
     toplegend = True
     palette = "tab10"
-    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False,
-             toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
+    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
 
 def plot_rocauc_vs_SE_per_H_B_sampling(df, columns, fn=None):
     y = columns['rocauc']
@@ -335,8 +361,52 @@ def plot_estimation_errors_per_rocauc_sampling(df, columns, metricx, metricy,fn=
              ylim=(-0.6,0.6),
              palette=palette)
 
+def plot_estimation_error_per_H_B_rocauc(df, columns, metricx, metricy, pseeds, all_sampling_methods=False, fn=None):
 
-def plot_estimation_errors_per_H_B_rocauc(df, columns, metricx, metricy,
+    validate_metric(metricx)
+    validate_metric(metricy)
+
+    tmp = df.copy()
+
+    # Selecting only specific sample sizes
+    tmp = tmp.query('pseeds<@pseeds')
+
+    if all_sampling_methods:
+        H = 0.5  # not included
+        B = 0.3  # not included
+
+        # Selecting only specific types of networks
+        tmp = tmp.query("H!=@H & B!=@B")
+
+        # Plotting all sample techniques (one plot for each)
+        for sampling in _sort_sampling_methods(df.sampling.unique()):
+            ylabel = (sampling == 'nodes', 'partial' in sampling)
+            legend = 'partial' in sampling
+            yticklabels = sampling == 'nodes'
+
+            print(sampling)
+            _plot_estimation_error_per_H_B_rocauc(
+                tmp.query('sampling==@sampling'), columns,
+                metricx=metricx, metricy=metricy,
+                ylabel=ylabel,
+                legend=legend,
+                yticklabels=yticklabels,
+                shortaxislabels=True,
+                xlim=(-0.05, 0.5),
+                ylim=(-0.05, 0.25),
+                height=1.4, aspect=1.5,
+                fn=fn)
+    else:
+        # Plotting only 1 sampling technique (full plot)
+        # available sampling methods: nodes, neighbors, nedges, degree, partial
+        sampling = 'nodes'
+        _plot_estimation_error_per_H_B_rocauc(
+            tmp.query("sampling.str.startswith(@sampling)", engine='python'), columns,
+            metricx=metricx, metricy=metricy,
+            height=1.2, aspect=1.2,
+            fn=fn)
+
+def _plot_estimation_error_per_H_B_rocauc(df, columns, metricx, metricy,
                                           ylabel=(True,True), legend=True, yticklabels=True,
                                           shortaxislabels=True,xlim=(None,None),ylim=(None,None),
                                           height=1.2,aspect=1.2,
@@ -408,6 +478,10 @@ def plot_setup(latex=True):
     else:
         sns.set_context('paper', font_scale=1.2)
 
+def validate_metric(metric):
+    if metric not in METRIC.keys():
+        raise ValueError('{} does not exist as a metric. Please use any of the following: \n{}'.format(metric, METRIC.keys()))
+
 def _sort_sampling_methods(sampling_list):
     order = []
     for s in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
@@ -438,7 +512,7 @@ def _set_minimal_xticklabels(ax):
 def _plot_lines_simple(x, y, **kwargs):
     ax = plt.gca()
     data = kwargs.pop("data")
-    mean = kwargs.pop("mean")
+    #mean = kwargs.pop("mean")
     sns.pointplot(data=data, x=x, y=y, ci='sd', estimator=np.mean, ax=ax, **kwargs)
     ax.axhline(y=0.5, color='grey', linestyle=':', lw=0.8, label="random")
     ax.grid(False)
@@ -487,6 +561,9 @@ def _plot_scatter(x, y, **kwargs):
     data = kwargs.pop("data")
     ax.scatter(data[x], data[y], **kwargs)
 
+def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False):
+    _plot_by(df, 'pseeds', y, row, col, hue, hue_order, fn, ylabel, legend, toplegend, yticklabels, kind, logy, palette)
+
 def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True), legend=True,
              toplegend=False, yticklabels=True, kind="line", logy=False, palette=False,
              xlabel=True, xlim=(None,None), ylim=(None,None), col_order=None, shortaxislabels=False,
@@ -494,26 +571,6 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
 
     plt.close()
     baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'SE': 0, 'EE':0}
-    metric = {'ROCAUC': 'ROCAUC', 'bias': 'Bias',
-
-              # Estimation Error: estimation - observed
-              'EEp1' : r'$P_{min} - \theta_{min}$',
-              'EEp0' : r'$P_{maj} - \theta_{maj}$',
-              'EEcp11': r'$P_{min|min} - \theta_{min|min}$',
-              'EEcp01': r'$P_{maj|min} - \theta_{maj|min}$',
-              'EEcp00': r'$P_{maj|maj} - \theta_{maj|maj}$',
-              'EEcp10': r'$P_{min|maj} - \theta_{min|maj}$',
-
-              # Squared Error: squared estimation error (estimation - observed)^2
-              'SEp1' : r'$(P_{min} - \theta_{min})^2$',
-              'SEp0' : r'$(P_{maj} - \theta_{maj})^2$',
-              'SEcp11': r'$(P_{min|min} - \theta_{min|min})^2$',
-              'SEcp00': r'$(P_{maj|maj} - \theta_{maj|maj})^2$',
-
-              # Comparing the estimation errors
-              'SEcpDiff': r"$(\theta_{maj|maj} - P_{maj|maj})^2 - (\theta_{min|min} - P_{min|min})^2$",
-              'SEcpSum' : r"$(\theta_{maj|maj} - P_{maj|maj})^2 + (\theta_{min|min} - P_{min|min})^2$",
-              }
 
     tmp = df.copy()
     tmp.loc[:,'pseeds'] = tmp.apply(lambda row: int(round(row['pseeds']*100,0)), axis=1)
@@ -584,28 +641,33 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     try:
         if xlabel:
             if x == 'bias':
-                fg.axes[int(round(tmp[col].nunique()/2,0))-1, 0].set_xlabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
+                fg.axes[-1,int(tmp[col].nunique()/2)].set_xlabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
             else:
+                if col is None:
+                    fg.axes[-1, 0].set_xlabel(x if x not in METRIC else METRIC[x])
                 if tmp[col].nunique() % 2 == 0:
                     for c in np.arange(tmp[col].nunique()):
-                        fg.axes[-1, c].set_xlabel(x if x not in metric else metric[x])
+                        fg.axes[-1, c].set_xlabel(x if x not in METRIC else METRIC[x])
                 else:
-                    fg.axes[0 if col is None else int(round(tmp[col].nunique()/2,0))-1, 0].set_xlabel(x if x not in metric else metric[x])
+                    fg.axes[-1, int(tmp[col].nunique()/2)].set_xlabel(x if x not in METRIC else METRIC[x])
 
     except Exception as ex:
         print(ex)
 
     # ylabel
     try:
+
         if ylabel[0]:
             if y == 'bias':
                 fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
             else:
-                if tmp[row].nunique() % 2 == 0:
+                if row is None:
+                    fg.axes[0, 0].set_ylabel(y if y not in METRIC else METRIC[y])
+                elif tmp[row].nunique() % 2 == 0:
                     for r in np.arange(tmp[row].nunique()):
-                        fg.axes[r, 0].set_ylabel(y if y not in metric else metric[y])
+                        fg.axes[r, 0].set_ylabel(y if y not in METRIC else METRIC[y])
                 else:
-                    fg.axes[0 if row is None else int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(y if y not in metric else metric[y])
+                    fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(y if y not in METRIC else METRIC[y])
 
     except Exception as ex:
         print(ex)
@@ -630,10 +692,6 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
 
     plt.show()
     plt.close()
-
-
-def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False):
-    _plot_by(df, 'pseeds', y, row, col, hue, hue_order, fn, ylabel, legend, toplegend, yticklabels, kind, logy, palette)
 
 
 
