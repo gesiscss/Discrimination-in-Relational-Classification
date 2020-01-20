@@ -1,13 +1,12 @@
+import glob
 from collections import Counter
-from joblib import Parallel, delayed
-import multiprocessing
-from utils import io
 
+import networkx as nx
 import numpy as np
 import pandas as pd
-import networkx as nx
-import os
-import glob
+from joblib import Parallel, delayed
+from utils import io
+
 
 ##################################################################################
 # Networks
@@ -43,7 +42,6 @@ def get_homophily(graph, smooth=1):
     fM = 1 - fm
     emm = float(Emm) / (Emm + EmM + EMm + EMM)
     return float(-2 * emm * fm * fM) / ((emm * (fm ** 2)) - (2 * emm * fm * fM) + (emm * (fM ** 2) - (fm ** 2)))
-
 
 def get_similitude(graph):
     if graph.number_of_edges() == 0:
@@ -84,10 +82,8 @@ def _get_global_estimates(index, row, cols, output):
 
     files = glob.glob(output + '/{}*N{}*m{}*B{}*H{}*/P10_graph_1.gpickle'.format(row['kind'],row['N'],row['m'],row['B'],row['H']), recursive=True)
 
-
     if len(files) <= 0:
         files = glob.glob(output + '/{}*/P10_graph_1.gpickle'.format(row['kind']), recursive=True)
-
 
     if len(files) <= 0:
         raise Exception('network does not exist: {}\n{}'.format(len(files), row))
@@ -157,12 +153,21 @@ def merge_global_estimates(df, LC, RC, output, njobs=1):
 
     df = df.merge(df_global_estimates, left_on=['N', 'B', 'H', 'density'], right_on=['N', 'B', 'H', 'density'], how='left', suffixes=("", "_g"))
 
-    df.loc[:, 'MSEp0'] = df.apply(lambda row: (row['p0'] - row["p0_g"]) ** 2, axis=1)
-    df.loc[:, 'MSEp1'] = df.apply(lambda row: (row['p1'] - row["p1_g"]) ** 2, axis=1)
-    df.loc[:, 'MSEcp00'] = df.apply(lambda row: (row['cp00'] - row["cp00_g"]) ** 2, axis=1)
-    df.loc[:, 'MSEcp11'] = df.apply(lambda row: (row['cp11'] - row["cp11_g"]) ** 2, axis=1)
-    df.loc[:, 'MSEcpDiff'] = df.apply(lambda row: row['MSEcp00'] - row['MSEcp11'], axis=1)
-    df.loc[:, 'MSE'] = df.apply(lambda row: row['MSEp1'] + row['MSEcp00'] + row['MSEcp11'], axis=1)
+    df.loc[:, 'EEp0'] = df.apply(lambda row: row['p0'] - row["p0_g"], axis=1)
+    df.loc[:, 'EEp1'] = df.apply(lambda row: row['p1'] - row["p1_g"], axis=1)
+    df.loc[:, 'EEcp00'] = df.apply(lambda row: row['cp00'] - row["cp00_g"], axis=1)
+    df.loc[:, 'EEcp10'] = df.apply(lambda row: row['cp10'] - row["cp10_g"], axis=1)
+    df.loc[:, 'EEcp11'] = df.apply(lambda row: row['cp11'] - row["cp11_g"], axis=1)
+    df.loc[:, 'EEcp01'] = df.apply(lambda row: row['cp01'] - row["cp01_g"], axis=1)
+
+    df.loc[:, 'SEp0'] = df.apply(lambda row: (row['p0'] - row["p0_g"]) ** 2, axis=1)
+    df.loc[:, 'SEp1'] = df.apply(lambda row: (row['p1'] - row["p1_g"]) ** 2, axis=1)
+    df.loc[:, 'SEcp00'] = df.apply(lambda row: (row['cp00'] - row["cp00_g"]) ** 2, axis=1)
+    df.loc[:, 'SEcp11'] = df.apply(lambda row: (row['cp11'] - row["cp11_g"]) ** 2, axis=1)
+
+    df.loc[:, 'SEcpDiff'] = df.apply(lambda row: row['SEcp00'] - row['SEcp11'], axis=1)
+    df.loc[:, 'SEcpSum'] = df.apply(lambda row: row['SEcp00'] + row['SEcp11'], axis=1)
+    df.loc[:, 'SE'] = df.apply(lambda row: row['SEp1'] + row['SEcp00'] + row['SEcp11'], axis=1)
     return df
 
 ##################################################################################
@@ -179,7 +184,6 @@ def prior_learn(Gseeds):
     prior /= prior.sum()
 
     return prior
-
 
 def nBC_learn(Gseeds, smoothing=True, weight=None):
     # measuring probabilities based on Bayes theorem
@@ -213,3 +217,68 @@ def nBC_learn(Gseeds, smoothing=True, weight=None):
     condprob = condprob.div(condprob.sum(axis=1), axis=0)
 
     return condprob
+
+##################################################################################
+# Analytical Probabilities / Estiamtion / Error
+# Beta values and more info on derivations:
+# Karimi, F., Génois, M., Wagner, C., Singer, P., & Strohmaier, M. (2018).
+# Homophily influences ranking of minorities in social networks.
+# Scientific reports, 8(1), 11077.
+# https://www.nature.com/articles/s41598-018-29405-7/
+##################################################################################
+
+def get_analytical_probabilities(B, H):
+    #        B1    B:   H
+    betas = {0.5: {0.2: {'b1': 0.5, 'b0': 0.5},
+                   0.5: {'b1': 0.5, 'b0': 0.5},
+                   0.8: {'b1': 0.5, 'b0': 0.5}},
+             0.3: {0.2: {'b1': 0.68, 'b0': 0.38},
+                   0.5: {'b1': 0.5, 'b0': 0.5},
+                   0.8: {'b1': 0.45, 'b0': 0.51}},
+             0.1: {0.2: {'b1': 0.88, 'b0': 0.28},
+                   0.5: {'b1': 0.5, 'b0': 0.5},
+                   0.8: {'b1': 0.28, 'b0': 0.51}}}
+
+    beta_0 = betas[B][H]['b0']
+    beta_1 = betas[B][H]['b1']
+
+    d0 = (1 - B) * (1 - B) * H * (1 - beta_1)
+    d1 = B * B * H * (1 - beta_0)
+    d01 = (1 - B) * B * (1 - H) * ((1 - beta_1) + (1 - beta_0))
+
+    P11 = d1 / (d1 + d0 + d01)
+    P00 = d0 / (d1 + d0 + d01)
+    P01 = d01 / (d1 + d0 + d01)
+
+    return P00, P11, P01
+
+
+def get_analytical_estimators(B, H):
+    #        B1    B:   H
+    betas = {0.5: {0.2: {'b1': 0.5, 'b0': 0.5},
+                   0.5: {'b1': 0.5, 'b0': 0.5},
+                   0.8: {'b1': 0.5, 'b0': 0.5}},
+             0.3: {0.2: {'b1': 0.68, 'b0': 0.38},
+                   0.5: {'b1': 0.5, 'b0': 0.5},
+                   0.8: {'b1': 0.45, 'b0': 0.51}},
+             0.1: {0.2: {'b1': 0.88, 'b0': 0.28},
+                   0.5: {'b1': 0.5, 'b0': 0.5},
+                   0.8: {'b1': 0.28, 'b0': 0.51}}}
+
+    beta_0 = betas[B][H]['b0']
+    beta_1 = betas[B][H]['b1']
+
+    d0 = (1 - B) * (1 - B) * H * (1 - beta_1)
+    d1 = B * B * H * (1 - beta_0)
+    d01 = (1 - B) * B * (1 - H) * ((1 - beta_1) + (1 - beta_0))
+
+    P11 = d1 / (d1 + d01)
+    P01 = d01 / (d1 + d01)
+
+    P00 = d0 / (d0 + d01)
+    P10 = d01 / (d0 + d01)
+
+    return P00, P10, P11, P01
+
+def get_small_sample_error(P):
+    return np.sqrt(P)

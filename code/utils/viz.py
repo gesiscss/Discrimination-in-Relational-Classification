@@ -27,8 +27,11 @@ def latex_compatible_dataframe(df, latex=True):
     tmp.rename(columns=cols, inplace=True)
     return tmp, cols
 
+def unlatexfyme(text):
+    return text.replace("_", "").replace("\\", "").replace('{', '').replace('}', '').replace('$','').strip()
+
 ############################################################################################################
-# Plots
+# Plots RQ1: Structure vs Performance (ROCAUC)
 ############################################################################################################
 
 def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
@@ -109,8 +112,7 @@ def plot_rocauc_vs_pseeds_per_H_B_N_m(df, columns, fn=None):
     hue = columns['network_size']
     toplegend = True
     palette = "Paired"
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, kind="line", logy=False, palette=palette)
-
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
 
 def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
     y = columns['rocauc']
@@ -126,81 +128,12 @@ def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
 
     toplegend = True
     palette = "tab10"
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=False, toplegend=toplegend, ytickslabels=True, kind="line", logy=False, palette=palette)
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=False, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
 
 
-def plot_MSE_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
-    y = columns['MSE']
-    row = columns['H']
-    col = columns['B']
-    hue = columns['sampling']
-    x = columns['pseeds']
-
-    hue_order = []
-    hue_list = df[hue].unique()
-    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
-        if ho in hue_list:
-            hue_order.append(ho)
-
-    toplegend = True
-    palette = "tab10"
-    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False,
-             toplegend=toplegend, ytickslabels=True, kind="line", logy=False, palette=palette)
-
-
-def plot_rocauc_vs_MSE_per_H_B_sampling(df, columns, fn=None):
-    y = columns['rocauc']
-    row = columns['H']
-    col = columns['B']
-    hue = columns['sampling']
-    x = columns['MSE']
-
-    hue_order = []
-    hue_list = df[hue].unique()
-    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
-        if ho in hue_list:
-            hue_order.append(ho)
-
-    toplegend = True
-    palette = "tab10"
-    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False, toplegend=toplegend, ytickslabels=True, kind="scatter", logy=False, palette=palette)
-
-def plot_MSEp1_vs_MSEcpDiff_per_H_B_sampling(df, columns, fn=None):
-    x = columns['MSEcpDiff']
-    y = columns['MSEp1']
-    row = columns['H']
-    col = columns['B']
-    hue = columns['sampling']
-
-    hue_order = []
-    hue_list = df[hue].unique()
-    for ho in ['nodes','neighbors','nedges','degree','partial\_crawls','partial_crawls']:
-        if ho in hue_list:
-            hue_order.append(ho)
-
-    toplegend = True
-    palette = "tab10"
-    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=True, toplegend=toplegend, ytickslabels=True, kind="scatter", logy=False, palette=palette)
-
-
-
-def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
-    y = columns['bias']
-    row = columns['H']
-    col = columns['B']
-    hue = columns['sampling']
-
-    hue_order = []
-    hue_list = df[hue].unique()
-    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
-        if ho in hue_list:
-            hue_order.append(ho)
-
-    toplegend = True
-    palette = "tab10"
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, ytickslabels=True, kind="bar", logy=False, palette=palette)
-
-
+############################################################################################################
+# Plots RQ1: Mixed effects model
+############################################################################################################
 
 def plot_fixed_effects(fe_params, fn=None):
     plt.close()
@@ -316,7 +249,6 @@ def plot_model_vs_data(df, fn):
 
     fg.set_titles("{col_name}")
     subfigurelabel = ['a','b','c','d','e','f']
-    subfigurelabel = ['a','b','c','d','e','f']
 
     for i,ax in enumerate(fg.axes.flatten()):
         ax.axhline(0.5, ls="--", c='grey', lw=1.0)
@@ -335,6 +267,125 @@ def plot_model_vs_data(df, fn):
 
     plt.show()
     plt.close()
+
+
+############################################################################################################
+# Plots RQ2
+############################################################################################################
+
+def plot_SE_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
+    y = columns['SE']
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
+    x = columns['pseeds']
+    hue_order = _sort_sampling_methods(df[hue].unique())
+
+    toplegend = True
+    palette = "tab10"
+    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False,
+             toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
+
+def plot_rocauc_vs_SE_per_H_B_sampling(df, columns, fn=None):
+    y = columns['rocauc']
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
+    x = columns['SE']
+    hue_order = _sort_sampling_methods(df[hue].unique())
+
+    toplegend = True
+    palette = "tab10"
+    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=False, toplegend=toplegend, yticklabels=True, kind="scatter", logy=False, palette=palette)
+
+def plot_SEp1_vs_SEcpDiff_per_H_B_sampling(df, columns, fn=None):
+    x = columns['SEcpDiff']
+    y = columns['SEp1']
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
+    hue_order = _sort_sampling_methods(df[hue].unique())
+
+    toplegend = True
+    palette = "tab10"
+    _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=True, toplegend=toplegend, yticklabels=True, kind="scatter", logy=False, palette=palette)
+
+def plot_estimation_errors_per_rocauc_sampling(df, columns, metricx, metricy,fn=None):
+    x = columns[metricx]
+    y = columns[metricy]
+    row = None
+    col = columns['sampling']
+    hue = columns['rocauc']
+    palette = "BrBG"
+
+    tmp = df.copy()
+    sampling_order = _sort_sampling_methods(tmp['sampling'].unique())
+    #tmp = tmp.groupby(['sampling','pseeds']).mean().reset_index()
+    tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+
+    _plot_by(tmp, x, y, row=row, col=col, hue=hue, hue_order=None,col_order=sampling_order,
+             kind="scatter", fn=fn,
+             ylabel=(True,True),
+             legend=True, toplegend=False,
+             yticklabels=True, xlabel=True,
+             logy=False,
+             height=2.0,
+             aspect=0.9,
+             xlim=(-0.3,0.6),
+             ylim=(-0.6,0.6),
+             palette=palette)
+
+
+def plot_estimation_errors_per_H_B_rocauc(df, columns, metricx, metricy,
+                                          ylabel=(True,True), legend=True, yticklabels=True,
+                                          shortaxislabels=True,xlim=(None,None),ylim=(None,None),
+                                          height=1.2,aspect=1.2,
+                                          fn=None):
+    x = columns[metricx]
+    y = columns[metricy]
+    row = columns['H']
+    col = columns['B']
+    hue = columns['rocauc']
+    palette = "BrBG"
+
+    tmp = df.copy()
+    tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+
+    _plot_by(tmp, x, y, row=row, col=col, hue=hue,
+             kind="scatter", fn=fn,
+             ylabel=ylabel,
+             legend=legend, toplegend=False,
+             yticklabels=yticklabels, xlabel=True,
+             logy=False,
+             height=height,
+             aspect=aspect,
+             xlim=xlim,
+             ylim=ylim,
+             shortaxislabels=shortaxislabels,
+             palette=palette)
+
+
+############################################################################################################
+# Plots RQ3
+############################################################################################################
+
+def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
+    y = columns['bias']
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
+
+    hue_order = []
+    hue_list = df[hue].unique()
+    for ho in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
+        if ho in hue_list:
+            hue_order.append(ho)
+
+    toplegend = True
+    palette = "tab10"
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, yticklabels=True, kind="bar", logy=False, palette=palette)
+
+
 
 ############################################################################################################
 # Setup / Handlers
@@ -356,6 +407,27 @@ def plot_setup(latex=True):
         sns.set_context("paper", rc={"lines.linewidth": lw})
     else:
         sns.set_context('paper', font_scale=1.2)
+
+def _sort_sampling_methods(sampling_list):
+    order = []
+    for s in ['nodes', 'neighbors', 'nedges', 'degree', 'partial\_crawls', 'partial_crawls']:
+        if s in sampling_list:
+            order.append(s)
+    return order
+
+def _get_short_axis_label(label):
+    if label not in ['SEcpDiff', 'SEcpSum']:
+        if 'cp' in label:
+            s = label.replace('cp', '_{').replace('11', 'min|min}').replace('00', 'maj|maj}')
+        else:
+            s = label.replace('p', '_{').replace('1', 'min}').replace('0', 'maj}')
+        s = r'${}$'.format(s)
+    else:
+        if label == 'SEcpDiff':
+            s = r'$SE_{maj|maj} - SE_{min|min}$'
+        else:
+            s = r'$SE_{maj|maj} + SE_{min|min}$'
+    return s
 
 def _set_minimal_xticklabels(ax):
     labels = ax.get_xticklabels()  # get x labels
@@ -415,32 +487,66 @@ def _plot_scatter(x, y, **kwargs):
     data = kwargs.pop("data")
     ax.scatter(data[x], data[y], **kwargs)
 
+def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True), legend=True,
+             toplegend=False, yticklabels=True, kind="line", logy=False, palette=False,
+             xlabel=True, xlim=(None,None), ylim=(None,None), col_order=None, shortaxislabels=False,
+             height=1.2, aspect=1.2):
 
-def _plot_by(df, x, y, row, col, hue, hue_order, fn=None, ylabel=(True,True), legend=True, toplegend=False, ytickslabels=True, kind="line", logy=False, palette=False):
     plt.close()
-    baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'MSE': 0}
+    baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'SE': 0, 'EE':0}
     metric = {'ROCAUC': 'ROCAUC', 'bias': 'Bias',
-               'MSEp1':r"$(\theta_{min} - P_{min})^2$",
-               'MSEcpDiff':r"$(\theta_{maj|maj} - P_{maj|maj})^2 - (\theta_{min|min} - P_{min|min})^2$"}
+
+              # Estimation Error: estimation - observed
+              'EEp1' : r'$P_{min} - \theta_{min}$',
+              'EEp0' : r'$P_{maj} - \theta_{maj}$',
+              'EEcp11': r'$P_{min|min} - \theta_{min|min}$',
+              'EEcp01': r'$P_{maj|min} - \theta_{maj|min}$',
+              'EEcp00': r'$P_{maj|maj} - \theta_{maj|maj}$',
+              'EEcp10': r'$P_{min|maj} - \theta_{min|maj}$',
+
+              # Squared Error: squared estimation error (estimation - observed)^2
+              'SEp1' : r'$(P_{min} - \theta_{min})^2$',
+              'SEp0' : r'$(P_{maj} - \theta_{maj})^2$',
+              'SEcp11': r'$(P_{min|min} - \theta_{min|min})^2$',
+              'SEcp00': r'$(P_{maj|maj} - \theta_{maj|maj})^2$',
+
+              # Comparing the estimation errors
+              'SEcpDiff': r"$(\theta_{maj|maj} - P_{maj|maj})^2 - (\theta_{min|min} - P_{min|min})^2$",
+              'SEcpSum' : r"$(\theta_{maj|maj} - P_{maj|maj})^2 + (\theta_{min|min} - P_{min|min})^2$",
+              }
 
     tmp = df.copy()
     tmp.loc[:,'pseeds'] = tmp.apply(lambda row: int(round(row['pseeds']*100,0)), axis=1)
 
     fg = sns.FacetGrid(data=tmp, col=col, row=row, hue=hue,
                        hue_order=hue_order,
+                       col_order=col_order,
                        margin_titles=True,
-                       height=1.2 if tmp[col].nunique() > 1 else 2,
-                       aspect=1.2 if tmp[col].nunique() > 1 else 0.75,
+                       height=height if tmp[col].nunique() > 1 else 2,
+                       aspect=aspect if tmp[col].nunique() > 1 else 0.75,
                        dropna=False,
-                       palette=palette
-                       )
+                       palette=palette)
 
     if kind == 'bar':
         fg = fg.map_dataframe(_plot_bars, x, y, logy=logy)
     elif kind == 'line':
         fg = fg.map_dataframe(_plot_lines, x, y, marker='o', lw=1.0, alpha=1.0)
     elif kind == 'scatter':
-        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.3)
+        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.3, vmin=0, vmax=1)
+
+
+    x = unlatexfyme(x)
+    y = unlatexfyme(y)
+
+    for ax in fg.axes.flatten():
+        if 'SE' in x or 'EE' in x:
+            ax.axvline(baseline[x[:2]], lw=1, ls='--', c='grey')
+        if 'SE' in y or 'EE' in y:
+            ax.axhline(baseline[x[:2]], lw=1, ls='--', c='grey')
+
+    if shortaxislabels:
+        x = _get_short_axis_label(x)
+        y = _get_short_axis_label(y)
 
     if legend:
         if not toplegend:
@@ -460,55 +566,58 @@ def _plot_by(df, x, y, row, col, hue, hue_order, fn=None, ylabel=(True,True), le
         except:
             pass
 
-        if 'MSE' in x:
-            ax.axvline(baseline['MSE'], lw=1, ls='--', c='grey')
-        if 'MSE' in y:
-            ax.axhline(baseline['MSE'], lw=1, ls='--', c='grey')
-
         ax.set_xlabel('')
         ax.set_ylabel('')
 
-        if ylabel in ['ROCAUC', 'bias']:
+        if y in ['ROCAUC', 'bias']:
             ax.set_ylim((-0.1, 1.1))
+
+        if xlim[0] is not None:
+            ax.set_xlim(xlim)
+        if ylim[0] is not None:
+            ax.set_ylim(ylim)
 
         if logy:
             ax.set_yscale('log')
 
+    # xlabel
     try:
-        # xlabel
-        fg.axes[-1, int(round(tmp[col].nunique()/2,0))-1].set_xlabel(x if x not in metric else metric[x])
+        if xlabel:
+            if x == 'bias':
+                fg.axes[int(round(tmp[col].nunique()/2,0))-1, 0].set_xlabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
+            else:
+                if tmp[col].nunique() % 2 == 0:
+                    for c in np.arange(tmp[col].nunique()):
+                        fg.axes[-1, c].set_xlabel(x if x not in metric else metric[x])
+                else:
+                    fg.axes[0 if col is None else int(round(tmp[col].nunique()/2,0))-1, 0].set_xlabel(x if x not in metric else metric[x])
+
     except Exception as ex:
         print(ex)
-        # # xlabel
-        # fg.axes[0, 1].set_xlabel(x)
 
+    # ylabel
     try:
-        # ylabel
         if ylabel[0]:
             if y == 'bias':
                 fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
             else:
-                fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(y if y not in metric else metric[y])
+                if tmp[row].nunique() % 2 == 0:
+                    for r in np.arange(tmp[row].nunique()):
+                        fg.axes[r, 0].set_ylabel(y if y not in metric else metric[y])
+                else:
+                    fg.axes[0 if row is None else int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(y if y not in metric else metric[y])
 
     except Exception as ex:
         print(ex)
-        #
-        # if y == 'bias':
-        #     fg.axes[0, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
-        # else:
-        #     try:
-        #         fg.axes[0, 0].set_ylabel(metric[y])
-        #     except:
-        #         fg.axes[0, 0].set_ylabel(y)
-        # pass
+
 
     # ylabel on the right
     if not ylabel[1]:
         for r in np.arange(0, df[row].nunique()):
             fg.axes[r, -1].texts = []
 
-    # ytickslabels
-    if not ytickslabels:
+    # yticklabels
+    if not yticklabels:
         for r in np.arange(0, df[row].nunique()):
             for c in np.arange(0, df[col].nunique()):
                 fg.axes[r, c].set_yticklabels([])
@@ -522,8 +631,9 @@ def _plot_by(df, x, y, row, col, hue, hue_order, fn=None, ylabel=(True,True), le
     plt.show()
     plt.close()
 
-def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, ytickslabels=True, kind="line", logy=False, palette=False):
-    _plot_by(df, 'pseeds', y, row, col, hue, hue_order, fn, ylabel, legend, toplegend, ytickslabels, kind, logy, palette)
+
+def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False):
+    _plot_by(df, 'pseeds', y, row, col, hue, hue_order, fn, ylabel, legend, toplegend, yticklabels, kind, logy, palette)
 
 
 
@@ -620,130 +730,4 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True
     #
     # plt.show()
     # plt.close()
-
-
-
-#     _plot_by_pseeds(df, y, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, ytickslabels=True, bars=False, logy=False)
-#
-# def _plot_by_pseeds(df, y, hue_order, fn=None, ylabel=(True,True), legend=True, toplegend=False, ytickslabels=True, bars=False, logy=False):
-#     tmp, cols = _prepare_plot(df)
-#
-#     baseline = {'rocauc': 0.5, 'bias': 0.5, 'zscore': 0}
-#     ymetric = {'rocauc': 'ROCAUC', 'bias': 'Bias', 'zscore': 'z-score'}
-#
-#     if bars:
-#         tmp = tmp.query("pseeds < 40")
-#
-#     fg = sns.FacetGrid(data=tmp, col='B', row='H', hue='sampling',
-#                        hue_order=hue_order,
-#                        margin_titles=True,
-#                        height=1.2 if tmp.H.nunique() > 1 else 2,
-#                        aspect=1.2 if tmp.H.nunique() > 1 else 0.75,
-#                        dropna=False,
-#                        )
-#
-#     if bars:
-#         fg = fg.map_dataframe(_plot_bars, 'pseeds', y, logy=logy)
-#     else:
-#         fg = fg.map_dataframe(_plot_lines, 'pseeds', y, marker='o', lw=1.0, alpha=1.0)
-#
-#     if legend:
-#         if not toplegend:
-#             fg.add_legend()
-#         else:
-#             fg.axes[0, 0].legend(loc='lower left',
-#                                  bbox_to_anchor=(-0.08, 1.3, 0.1, 1),  # -0.25
-#                                  borderaxespad=0,
-#                                  labelspacing=0,
-#                                  handlelength=1,
-#                                  frameon=False,
-#                                  ncol=df.sampling.nunique())
-#
-#     for ax in fg.axes.flatten():
-#         try:
-#             ax.axhline(baseline[y], lw=1, ls='--', c='grey')
-#         except:
-#             pass
-#
-#         ax.set_xlabel('')
-#         ax.set_ylabel('')
-#
-#         # if not bars:
-#         if ylabel in ['rocauc', 'bias']:
-#             ax.set_ylim((-0.1, 1.1))
-#
-#         if logy:
-#             ax.set_yscale('log')
-#
-#     try:
-#         fg.axes[2, 1].set_xlabel('pseeds')
-#         if ylabel[0]:
-#             if y == 'bias':
-#                 fg.axes[1, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
-#             else:
-#                 fg.axes[1, 0].set_ylabel(ymetric[y])
-#         if not ylabel[1]:
-#             fg.axes[0, 2].texts = []
-#             fg.axes[1, 2].texts = []
-#             fg.axes[2, 2].texts = []
-#         if not ytickslabels:
-#             for r in [1, 2]:
-#                 for c in [0, 1, 2]:
-#                     fg.axes[r, c].set_yticklabels([])
-#     except:
-#         fg.axes[0, 1].set_xlabel('pseeds')
-#         if y == 'bias':
-#             fg.axes[0, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
-#         else:
-#             try:
-#                 fg.axes[0, 0].set_ylabel(ymetric[y])
-#             except:
-#                 fg.axes[0, 0].set_ylabel(y)
-#         pass
-#
-#     plt.subplots_adjust(hspace=0.05, wspace=0.05)
-#
-#     if fn is not None:
-#         fg.savefig(fn, bbox_inches='tight')
-#         print("{} saved!".format(fn))
-#     plt.show()
-#     plt.close()
-#
-#     def _plot_bars(x, y, **kwargs):
-#         width = 0.2
-#
-#         ax = plt.gca()
-#         data = kwargs.pop("data")
-#         g = data.groupby(['B', 'H', 'pseeds', 'sampling'])  # 'N',m
-#         means = g[y].mean().reset_index()
-#         errors = g[y].std()
-#         logy = kwargs.pop("logy")
-#
-#         span = {'nodes': width * 0, 'nedges': width * 1, 'degree': width * 2, 'partialcrawls': width * 3}
-#         sampling = data.sampling.unique()[0].replace("_", "").replace("\\", "")
-#         span = span[sampling]
-#
-#         xticks = np.arange(1, means.pseeds.nunique() + 1, 1)
-#         ax.bar(xticks + span, means[y], width, yerr=errors, bottom=0, **kwargs)
-#
-#         ax.set_xticks(xticks + width)
-#         ax.set_xticklabels(sorted(data.pseeds.astype(np.int).unique()))
-#
-#         if logy:
-#             ax.set_yscale('symlog')
-#
-#     def _plot_lines(x, y, **kwargs):
-#
-#         ax = plt.gca()
-#         data = kwargs.pop("data")
-#         g = data.groupby(['B', 'H', 'pseeds', 'sampling'])  # 'N',m
-#         means = g[y].mean().reset_index()
-#
-#         if 'errors' in kwargs:
-#             if not kwargs.pop('errors'):
-#                 ax.plot(means.pseeds, means[y], **kwargs)
-#                 return
-#
-#         errors = g[y].std()
-#         ax.errorbar(means.pseeds, means[y], yerr=errors, **kwargs)
 
