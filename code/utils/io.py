@@ -1,8 +1,11 @@
-import os
-import networkx as nx
-import pickle
 import datetime
+import os
+import pickle
+
+import networkx as nx
+import numpy as np
 import pandas as pd
+
 
 def create_folder(path, changeto=False):
     if not os.path.exists(path):
@@ -71,6 +74,21 @@ def load_csv(fn):
     else:
         raise FileNotFoundError("{} does not exist.".format(fn))
     return df
+
+def get_random_datafn(path,kind,N,m,B,H):
+    # BAH-N500-m4-B0.5-H1.0-i5-x5-h1.0-k7.9-km7.9-kM7.9.gpickle
+    fn = [fn for fn in os.listdir(path)
+          if fn.startswith(kind) and
+          fn.endswith('.gpickle') and
+          '-N{}-'.format(N) in fn and
+          '-m{}-'.format(m) in fn and
+          '-B{}-'.format(B) in fn and
+          '-H{}-'.format(H) in fn]
+
+    if len(fn) == 0:
+        raise Exception('No files found.')
+
+    return os.path.join(path, np.random.choice(fn,1)[0])
 
 def printf(txt):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
