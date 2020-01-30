@@ -4,11 +4,11 @@
 \begin{tabular}{llll}
 \hline
 Model:            & MixedLM & Dependent Variable: & rocauc     \\
-No. Observations: & 1930    & Method:             & REML       \\
-No. Groups:       & 110     & Scale:              & 0.0022     \\
-Min. group size:  & 11      & Likelihood:         & 2838.2058  \\
+No. Observations: & 2030    & Method:             & REML       \\
+No. Groups:       & 110     & Scale:              & 0.0025     \\
+Min. group size:  & 12      & Likelihood:         & 2887.6440  \\
 Max. group size:  & 59      & Converged:          & Yes        \\
-Mean group size:  & 17.5    &                     &            \\
+Mean group size:  & 18.5    &                     &            \\
 \hline
 \end{tabular}
 \end{center}
@@ -21,11 +21,11 @@ Mean group size:  & 17.5    &                     &            \\
 \hline
 \end{tabular}
 \begin{tabular}{lrrrrrr}
-Intercept & 0.777 &    0.018 & 44.228 &       0.000 &  0.742 &  0.811  \\
-N         & 0.000 &    0.000 &  8.726 &       0.000 &  0.000 &  0.000  \\
-density   & 0.604 &    0.047 & 12.897 &       0.000 &  0.512 &  0.696  \\
-B         & 0.083 &    0.007 & 12.217 &       0.000 &  0.070 &  0.096  \\
-Group Var & 0.032 &    0.095 &        &             &        &         \\
+Intercept & 0.769 &    0.017 & 43.970 &       0.000 &  0.735 &  0.803  \\
+N         & 0.000 &    0.000 & 10.559 &       0.000 &  0.000 &  0.000  \\
+density   & 0.635 &    0.050 & 12.815 &       0.000 &  0.538 &  0.732  \\
+B         & 0.100 &    0.007 & 14.593 &       0.000 &  0.087 &  0.114  \\
+Group Var & 0.032 &    0.089 &        &             &        &         \\
 \hline
 \end{tabular}
 \end{center}
