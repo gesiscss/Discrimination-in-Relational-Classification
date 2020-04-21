@@ -70,9 +70,13 @@ def is_inference_summary_done(output, kind, LC, RC, CI, sampling):
 
 def _load_pickle_to_dataframe(fn, verbose=True):
     obj = load_pickle(fn, verbose)
-    columns = ['kind', 'N', 'm', 'density', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias', 'lag','p0','p1','cp00','cp01','cp11','cp10']
+    columns = ['kind', 'fit', 'N', 'm', 'density', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias', 'lag','p0','p1','cp00','cp01','cp11','cp10']
 
-    df = pd.DataFrame({'kind': fn.split("/")[-2].split("-")[0].split("_")[0],
+    fit = '-FIT-' in fn
+    kind = fn.split("/")[-2].split("-")[0].split("_")[0] if not fit else fn.split("/")[-2].split("-FIT-")[0]
+
+    df = pd.DataFrame({'kind': kind,
+                       'fit':fit,
                        'N': int(obj['N']),
                        'm': int(obj['m']),
                        'density': float(obj['density']),
@@ -299,7 +303,9 @@ class Inference(object):
         s = sampling if sampling != "all" else "*"
         k = kind if kind != "all" else "*"
 
-        exp = '/{}{}{}/*_evaluation_*.pickle'.format(k, '*' if k!='*' and s!='*' else '', s if s=='*' or s!='partial_crawls' else '{}_*'.format(s))
+        exp = '/{}{}{}/*_evaluation_*.pickle'.format(k,
+                                                     '*' if k!='*' and s!='*' else '',
+                                                     s if s=='*' or s!='partial_crawls' else '{}_*'.format(s))
         files = glob.glob(output + exp, recursive=True)
 
         results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn, verbose) for fn in files)

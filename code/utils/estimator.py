@@ -54,7 +54,7 @@ def get_minority_fraction(graph):
     b = Counter([graph.node[n][graph.graph['class']] for n in graph.nodes()]).most_common()[1][1] / graph.number_of_nodes()
     return b
 
-def get_degrees(graph):
+def get_average_degrees(graph):
     labels = graph.graph['labels']
     group = graph.graph['group']
 

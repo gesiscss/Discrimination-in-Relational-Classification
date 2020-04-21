@@ -78,7 +78,7 @@ def plot_rocauc_curve(fpr, tpr, rocauc, fn=None):
     plt.show()
     plt.close()
 
-def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, fn=None):
+def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None):
     plt.close()
     tmp = df.copy()
 
@@ -117,13 +117,14 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, fn=None):
         aa[1].axhline(0.5, lw=0.5, c="grey", ls="--")
 
         # example
-        if coord == (0, 0):
-            aa[1].annotate('', xy=(9.1, 0.61),
-                           xytext=(10, 0.45),
-                           arrowprops={'arrowstyle': '-|>',
-                                       'lw': 2,
-                                       'ec': 'k', 'fc': 'k'},
-                           va='center')
+        if example:
+            if coord == (0, 0):
+                aa[1].annotate('', xy=(9.1, 0.61),
+                               xytext=(10, 0.45),
+                               arrowprops={'arrowstyle': '-|>',
+                                           'lw': 2,
+                                           'ec': 'k', 'fc': 'k'},
+                               va='center')
 
     plt.subplots_adjust(hspace=0.05, wspace=0.05)
 
@@ -266,12 +267,14 @@ def plot_model_vs_data(df, fn):
     plt.close()
     tmp = df.copy()
     tmp.loc[:,'pseeds'] = tmp.apply(lambda row: int(row.pseeds*100), axis=1)
+    x = 'pseeds'
+    y = 'ROCAUC'
     fg = sns.catplot(data=tmp,
                      kind='point',
                      height=2.0,
-                     aspect=1.0,
+                     aspect=0.85,
                      palette="Paired",
-                     col='dataset', x='pseeds', y="ROCAUC",
+                     col='dataset', x=x, y=y,
                      hue='source',hue_order=['model','data'])
 
     fg.set_titles("{col_name}")
@@ -279,7 +282,7 @@ def plot_model_vs_data(df, fn):
 
     for i,ax in enumerate(fg.axes.flatten()):
         ax.axhline(0.5, ls="--", c='grey', lw=1.0)
-        ax.set_ylim(0.4, 1)
+        ax.set_ylim(0.4, 1.05)
         _set_minimal_xticklabels(ax)
 
         dataset = ax.get_title()
@@ -287,6 +290,13 @@ def plot_model_vs_data(df, fn):
         ax.text(s="H={}\nB={}".format(_tmp.H.unique()[0],_tmp.B.unique()[0]),x=1,y=0.8)
 
         ax.set_title("{}) {}".format(subfigurelabel[i],dataset))
+
+        if i == int(fg.axes.shape[1]/2.):
+            ax.set_xlabel('pseeds')
+        else:
+            ax.set_xlabel('')
+
+    plt.subplots_adjust(wspace=0.1)
 
     if fn is not None:
         fg.savefig(fn, bbox_inches='tight')
@@ -336,42 +346,56 @@ def plot_SEp1_vs_SEcpDiff_per_H_B_sampling(df, columns, fn=None):
     palette = "tab10"
     _plot_by(df, x, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=True, toplegend=toplegend, yticklabels=True, kind="scatter", logy=False, palette=palette)
 
-def plot_estimation_errors_per_rocauc_sampling(df, columns, metricx, metricy,fn=None):
+def plot_estimation_errors_per_H_B_rocauc(df, columns, metricx, metricy,fn=None):
     x = columns[metricx]
     y = columns[metricy]
-    row = None
-    col = columns['sampling']
+    row = columns['H']
+    col = columns['B']
     hue = columns['rocauc']
     palette = "BrBG"
 
     tmp = df.copy()
-    sampling_order = _sort_sampling_methods(tmp['sampling'].unique())
-    #tmp = tmp.groupby(['sampling','pseeds']).mean().reset_index()
     tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
 
-    _plot_by(tmp, x, y, row=row, col=col, hue=hue, hue_order=None,col_order=sampling_order,
-             kind="scatter", fn=fn,
-             ylabel=(True,True),
-             legend=True, toplegend=False,
-             yticklabels=True, xlabel=True,
-             logy=False,
-             height=2.0,
-             aspect=0.9,
-             xlim=(-0.3,0.6),
-             ylim=(-0.6,0.6),
-             palette=palette)
+    _plot_by(tmp, x, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True,
+             toplegend=False, yticklabels=True, kind="scatter", logy=False, palette=palette,
+             xlabel=True, xlim=(None, None), ylim=(None, None), col_order=None, shortaxislabels=True,
+             height=1.5, aspect=1.2, grid=True, xlabelpos=(-0.08, -0.2), ylabelpos=(-0.105, 0.05))
+    return
 
-def plot_estimation_error_per_H_B_rocauc(df, columns, metricx, metricy, pseeds, all_sampling_methods=False, fn=None):
+# def plot_estimation_errors_per_rocauc_sampling(df, columns, metricx, metricy,fn=None):
+#     x = columns[metricx]
+#     y = columns[metricy]
+#     row = None
+#     col = columns['sampling']
+#     hue = columns['rocauc']
+#     palette = "BrBG"
+#
+#     tmp = df.copy()
+#     sampling_order = _sort_sampling_methods(tmp['sampling'].unique())
+#     #tmp = tmp.groupby(['sampling','pseeds']).mean().reset_index()
+#     tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+#
+#     _plot_by(tmp, x, y, row=row, col=col, hue=hue, hue_order=None,col_order=sampling_order,
+#              kind="scatter", fn=fn,
+#              ylabel=(True,True),
+#              legend=True, toplegend=False,
+#              yticklabels=True, xlabel=True,
+#              logy=False,
+#              height=2.0,
+#              aspect=0.9,
+#              xlim=(-0.3,0.6),
+#              ylim=(-0.6,0.6),
+#              palette=palette)
+
+def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy, sampling=None, fn=None):
 
     validate_metric(metricx)
     validate_metric(metricy)
 
     tmp = df.copy()
 
-    # Selecting only specific sample sizes
-    tmp = tmp.query('pseeds<@pseeds')
-
-    if all_sampling_methods:
+    if sampling in [None, 'all', 'ALL', 'All']:
         H = 0.5  # not included
         B = 0.3  # not included
 
@@ -385,32 +409,41 @@ def plot_estimation_error_per_H_B_rocauc(df, columns, metricx, metricy, pseeds, 
             yticklabels = sampling == 'nodes'
 
             print(sampling)
-            _plot_estimation_error_per_H_B_rocauc(
+            _plot_estimation_errors_per_H_B_rocauc_sampling(
                 tmp.query('sampling==@sampling'), columns,
                 metricx=metricx, metricy=metricy,
                 ylabel=ylabel,
                 legend=legend,
                 yticklabels=yticklabels,
                 shortaxislabels=True,
-                xlim=(-0.05, 0.5),
-                ylim=(-0.05, 0.25),
-                height=1.4, aspect=1.5,
-                fn=fn)
+                xlim=(-0.03, tmp[columns[metricx]].max()+0.03),
+                ylim=(-0.018, tmp[columns[metricy]].max()+0.03),
+                height=1.5, aspect=1.2,
+                grid=True,
+                fn=fn.replace('<sampling>',sampling),
+                xlabelpos=(-0.3, -0.11), ylabelpos=(-0.2, 0.0))
     else:
         # Plotting only 1 sampling technique (full plot)
         # available sampling methods: nodes, neighbors, nedges, degree, partial
-        sampling = 'nodes'
-        _plot_estimation_error_per_H_B_rocauc(
+        _plot_estimation_errors_per_H_B_rocauc_sampling(
             tmp.query("sampling.str.startswith(@sampling)", engine='python'), columns,
             metricx=metricx, metricy=metricy,
-            height=1.2, aspect=1.2,
-            fn=fn)
+            ylabel=(True,True),
+            legend=True,
+            yticklabels=True,
+            shortaxislabels=True,
+            xlim=(-0.03, tmp[columns[metricx]].max() + 0.03),
+            ylim=(-0.018, tmp[columns[metricy]].max() + 0.03),
+            height=1.5, aspect=1.2,
+            grid=True,
+            fn=fn.replace('<sampling>',sampling),
+            xlabelpos=(-0.3, -0.11), ylabelpos=(-0.2, 0.0))
 
-def _plot_estimation_error_per_H_B_rocauc(df, columns, metricx, metricy,
-                                          ylabel=(True,True), legend=True, yticklabels=True,
-                                          shortaxislabels=True,xlim=(None,None),ylim=(None,None),
-                                          height=1.2,aspect=1.2,
-                                          fn=None):
+def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy,
+                                                    ylabel=(True,True), legend=True, yticklabels=True,
+                                                    shortaxislabels=True,xlim=(None,None),ylim=(None,None),
+                                                    height=1.2,aspect=1.2,grid=False,
+                                                    fn=None, **kwargs):
     x = columns[metricx]
     y = columns[metricy]
     row = columns['H']
@@ -432,7 +465,9 @@ def _plot_estimation_error_per_H_B_rocauc(df, columns, metricx, metricy,
              xlim=xlim,
              ylim=ylim,
              shortaxislabels=shortaxislabels,
-             palette=palette)
+             grid=grid,
+             palette=palette,
+             **kwargs)
 
 
 ############################################################################################################
@@ -527,7 +562,8 @@ def _plot_bars(x, y, **kwargs):
     errors = g[y].std()
     logy = kwargs.pop("logy")
 
-    span = {'nodes': width * 0, 'neighbors': width * 1, 'nedges': width * 2, 'degree': width * 3, 'partialcrawls': width * 4}
+    #span = {'nodes': width * 0, 'neighbors': width * 1, 'nedges': width * 2, 'degree': width * 3, 'partialcrawls': width * 4}
+    span = {'nodes': width * 0, 'nedges': width * 1, 'degree': width * 2, 'partialcrawls': width * 3}
     sampling = data.sampling.unique()[0].replace("_", "").replace("\\", "")
     span = span[sampling]
 
@@ -567,7 +603,7 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True
 def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True), legend=True,
              toplegend=False, yticklabels=True, kind="line", logy=False, palette=False,
              xlabel=True, xlim=(None,None), ylim=(None,None), col_order=None, shortaxislabels=False,
-             height=1.2, aspect=1.2):
+             grid=False, height=1.2, aspect=1.2, **kwargs):
 
     plt.close()
     baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'SE': 0, 'EE':0}
@@ -589,17 +625,16 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     elif kind == 'line':
         fg = fg.map_dataframe(_plot_lines, x, y, marker='o', lw=1.0, alpha=1.0)
     elif kind == 'scatter':
-        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.3, vmin=0, vmax=1)
-
+        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.5, vmin=0, vmax=1)
 
     x = unlatexfyme(x)
     y = unlatexfyme(y)
 
     for ax in fg.axes.flatten():
         if 'SE' in x or 'EE' in x:
-            ax.axvline(baseline[x[:2]], lw=1, ls='--', c='grey')
+            ax.axvline(baseline[x[:2]], lw=0.5, ls='-', c='red')
         if 'SE' in y or 'EE' in y:
-            ax.axhline(baseline[x[:2]], lw=1, ls='--', c='grey')
+            ax.axhline(baseline[x[:2]], lw=0.5, ls='-', c='red')
 
     if shortaxislabels:
         x = _get_short_axis_label(x)
@@ -619,7 +654,7 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
 
     for ax in fg.axes.flatten():
         try:
-            ax.axhline(baseline[y], lw=1, ls='--', c='grey')
+            ax.axhline(baseline[y], lw=1, ls='-' if y != 'bias' else '--', c='red' if y!='bias' else 'grey')
         except:
             pass
 
@@ -637,19 +672,31 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
         if logy:
             ax.set_yscale('log')
 
+        if grid:
+            ax.grid(True, lw=0.5, ls='--')
+
     # xlabel
     try:
         if xlabel:
             if x == 'bias':
+                print('uno')
                 fg.axes[-1,int(tmp[col].nunique()/2)].set_xlabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
             else:
+
+                s = x if x not in METRIC else METRIC[x]
+
                 if col is None:
-                    fg.axes[-1, 0].set_xlabel(x if x not in METRIC else METRIC[x])
-                if tmp[col].nunique() % 2 == 0:
-                    for c in np.arange(tmp[col].nunique()):
-                        fg.axes[-1, c].set_xlabel(x if x not in METRIC else METRIC[x])
+                    fg.axes[-1, 0].set_xlabel(s)
+
+                elif tmp[col].nunique() % 2 == 0:
+                    c = int(tmp[col].nunique()/2)
+                    xx,yy = kwargs['xlabelpos']
+                    fg.axes[-1, c].text(s=s, x=xx, y=yy)
+
+                    #for c in np.arange(tmp[col].nunique()):
+                    #    fg.axes[-1, c].set_xlabel(x if x not in METRIC else METRIC[x])
                 else:
-                    fg.axes[-1, int(tmp[col].nunique()/2)].set_xlabel(x if x not in METRIC else METRIC[x])
+                    fg.axes[-1, int(tmp[col].nunique()/2)].set_xlabel(s)
 
     except Exception as ex:
         print(ex)
@@ -658,14 +705,20 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     try:
 
         if ylabel[0]:
+
             if y == 'bias':
                 fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
             else:
                 if row is None:
                     fg.axes[0, 0].set_ylabel(y if y not in METRIC else METRIC[y])
                 elif tmp[row].nunique() % 2 == 0:
-                    for r in np.arange(tmp[row].nunique()):
-                        fg.axes[r, 0].set_ylabel(y if y not in METRIC else METRIC[y])
+                    r = int(round(tmp[row].nunique()/2,0))-1
+                    s = y if y not in METRIC else METRIC[y]
+
+                    xx, yy = kwargs['ylabelpos']
+                    fg.axes[r, 0].text(s=s, x=xx, y=yy, rotation=90)
+                    #for r in np.arange(tmp[row].nunique()):
+                    #    fg.axes[r, 0].set_ylabel(y if y not in METRIC else METRIC[y])
                 else:
                     fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(y if y not in METRIC else METRIC[y])
 
@@ -676,7 +729,7 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     # ylabel on the right
     if not ylabel[1]:
         for r in np.arange(0, df[row].nunique()):
-            fg.axes[r, -1].texts = []
+            fg.axes[r, -1].texts = fg.axes[r, -1].texts[1:]
 
     # yticklabels
     if not yticklabels:

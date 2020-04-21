@@ -26,7 +26,7 @@ def run(params):
     me.modeling()
 
     ### 3. Save & Summary
-    output = os.path.join(params.output, '_mixed_effects')
+    output = os.path.join(params.output, 'mixed_effects')
     create_folder(output)
 
     me.summary()

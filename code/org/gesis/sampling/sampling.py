@@ -15,7 +15,7 @@ from utils.estimator import get_min_degree
 from utils.estimator import get_minority_fraction
 from utils.estimator import get_similitude
 from utils.estimator import get_homophily
-from utils.estimator import get_degrees
+from utils.estimator import get_average_degrees
 from utils.estimator import get_density
 
 ############################################
@@ -92,7 +92,7 @@ class Sampling(object):
         self.Gseeds.graph['H'] = get_homophily(self.Gseeds)
         self.Gseeds.graph['h'] = get_similitude(self.Gseeds)
         self.Gseeds.graph['e'] = self.Gseeds.number_of_edges()
-        k, km, kM = get_degrees(self.Gseeds)
+        k, km, kM = get_average_degrees(self.Gseeds)
         self.Gseeds.graph['k'] = k
         self.Gseeds.graph['km'] = km
         self.Gseeds.graph['kM'] = kM

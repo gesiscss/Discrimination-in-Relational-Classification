@@ -11,11 +11,12 @@ from org.gesis.network.generate_homophilic_graph_symmetric import homophilic_bar
 from utils.estimator import get_similitude
 from utils.estimator import get_homophily
 from utils.estimator import get_minority_fraction
-from utils.estimator import get_degrees
+from utils.estimator import get_average_degrees
 from utils.estimator import get_min_degree
 from utils.estimator import get_density
 from utils.estimator import get_param
 from utils.io import load_gpickle
+from utils.io import write_gpickle
 
 ############################################
 # Constants
@@ -27,12 +28,13 @@ BARABASI_ALBERT_HOMOPHILY = "BAH"
 ############################################
 class Network(object):
 
-    def __init__(self, kind=None):
+    def __init__(self, kind=None, fit=None):
         '''
         Initializes the network object
         - kind: type of network
         '''
         self.kind = kind
+        self.fit = fit
         self.G = None
         
     def create_network(self, **kwargs):
@@ -45,7 +47,7 @@ class Network(object):
 
             h = get_similitude(self.G)
             b = get_minority_fraction(self.G)
-            k,km,kM = get_degrees(self.G)
+            k,km,kM = get_average_degrees(self.G)
             m = get_min_degree(self.G)
             density = get_density(self.G)
             i = 1 if 'i' not in kwargs else kwargs['i']
@@ -69,17 +71,20 @@ class Network(object):
             self.G.graph['km'] = km
             self.G.graph['kM'] = kM
 
-            self.G.graph['fullname'] = "{}-N{}-m{}-B{}-H{}-i{}-x{}-h{}-k{}-km{}-kM{}".format(self.kind,
-                                                                                             kwargs['N'],
-                                                                                             kwargs['m'],
-                                                                                             kwargs['B'],
-                                                                                             kwargs['H'],
-                                                                                             i,
-                                                                                             x,
-                                                                                             round(h,1),
-                                                                                             round(k,1),
-                                                                                             round(km,1),
-                                                                                             round(kM,1))
+            prefix = self.kind if self.fit is None else '{}-{}'.format(self.kind, self.fit)
+            fullname = "{}-N{}-m{}-B{}-H{}-i{}-x{}-h{}-k{}-km{}-kM{}".format(prefix,
+                                                                            kwargs['N'],
+                                                                            kwargs['m'],
+                                                                            kwargs['B'],
+                                                                            kwargs['H'],
+                                                                            i,
+                                                                            x,
+                                                                            round(h,1),
+                                                                            round(k,1),
+                                                                            round(km,1),
+                                                                            round(kM,1))
+
+            self.G.graph['fullname'] = fullname
         else:
             raise Exception("{}: network type does not exist.".format(self.kind))
 
@@ -108,7 +113,7 @@ class Network(object):
         H = get_homophily(self.G)
         h = get_similitude(self.G)
         b = get_minority_fraction(self.G)
-        k, km, kM = get_degrees(self.G)
+        k, km, kM = get_average_degrees(self.G)
         m = get_min_degree(self.G)
         density = get_density(self.G)
 
@@ -138,5 +143,7 @@ class Network(object):
         '''
         print(nx.info(self.G))
         print(self.G.graph)
-        
-            
+
+    def save(self, root):
+        fn = os.path.join(root, self.G.graph['fullname'])
+        write_gpickle(self.G, fn)

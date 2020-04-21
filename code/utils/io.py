@@ -42,6 +42,9 @@ def write_pickle(obj, fn):
 
 def write_gpickle(graph, fn):
     try:
+        if not fn.endswith('.gpickle'):
+            fn = '{}.gpickle'.format(fn)
+
         nx.write_gpickle(graph, fn)
         print("{} saved!".format(fn))
     except Exception as ex:
