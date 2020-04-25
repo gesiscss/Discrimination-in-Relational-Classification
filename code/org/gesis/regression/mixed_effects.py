@@ -132,38 +132,47 @@ class MixedEffects(object):
         random_effects = pd.DataFrame(mdf.random_effects)
 
         # fixed effects
-        fe = 0
-        for var, value in fe_params.iteritems():
-            if var not in df:
-                fe += value
-            else:
-                fe += value * df.loc[var]
+        try:
+            fe = 0
+            for var, value in fe_params.iteritems():
+                if var not in df:
+                    fe += value
+                else:
+                    fe += value * df.loc[var]
+        except Exception as ex:
+            print('Error FE: {}'.format(ex))
 
         # random effects
-        group = []
-        for var in groups:
-            group.append(str(df.loc[var]))
-        group = '_'.join(group)
+        try:
+            group = []
+            for var in groups:
+                group.append(str(df.loc[var]))
+            group = '_'.join(group)
 
-        if group not in random_effects.columns:
-            group = group.split('_')
-            res = []
+            if group not in random_effects.columns:
+                group = group.split('_')
+                res = []
 
-            for i, var in enumerate(groups):
-                tmp = df.loc[var] * 10 ** 10 // 10 ** (10 - 1) / 10 ** 1
-                new_group = group.copy()
-                for value in [tmp, round(tmp + 0.1, 1)]:
-                    new_group[i] = str(value)
-                    try:
-                        res.append(random_effects.loc['Group', '_'.join(new_group)])
-                    except Exception as ex:
-                        pass
+                for i, var in enumerate(groups):
+                    tmp = df.loc[var] * 10 ** 10 // 10 ** (10 - 1) / 10 ** 1
+                    new_group = group.copy()
+                    for value in [tmp, round(tmp + 0.1, 1)]:
+                        new_group[i] = str(value)
+                        try:
+                            res.append(random_effects.loc['Group', '_'.join(new_group)])
+                        except Exception as ex:
+                            pass
 
-            re = np.mean(res)
-        else:
-            re = (random_effects.loc['Group', group])
+                re = np.mean(res)
+            else:
+                re = (random_effects.loc['Group', group])
+        except Exception as ex:
+            print('Error RE: {}'.format(ex))
 
         # group variance
-        gv = mdf.cov_re.values[0][0]
+        try:
+            gv = mdf.cov_re.values[0][0]
+        except Exception as ex:
+            print('Error GV: {}'.format(ex))
 
         return fe + re + gv

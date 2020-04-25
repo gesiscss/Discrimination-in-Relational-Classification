@@ -1,3 +1,4 @@
+import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +7,8 @@ import seaborn as sns
 import sympy
 from matplotlib import rc
 from palettable.colorbrewer.diverging import RdBu_11
+from utils import io
+from utils import estimator
 
 ############################################################################################################
 # Constants
@@ -56,6 +59,51 @@ def latex_compatible_dataframe(df, latex=True):
 
 def unlatexfyme(text):
     return text.replace("_", "").replace("\\", "").replace('{', '').replace('}', '').replace('$','').strip()
+
+############################################################################################################
+# Latex tables
+############################################################################################################
+
+def show_datasets_summary(datapath, latex=False, output=None):
+    from org.gesis.network.network import Network
+
+    fn_summary = os.path.join(output, 'summary_datasets.csv')
+
+    if os.path.exists(fn_summary):
+        df = io.load_csv(fn_summary)
+    else:
+        cols = ['dataset','N','E','class','minority','H','B','hmm','hMM']
+        df = pd.DataFrame(columns=cols)
+        files = [os.path.join(datapath, fn) for fn in os.listdir(datapath) if fn.endswith('.gpickle') and not fn.startswith('BAH')]
+        for fn in files:
+            print(fn)
+            N = Network()
+            N.load(fn, ignoreInt=0)
+
+            hmm, hMM  = estimator.estimate_homophily_BAH_empirical(N.G)
+
+            df = df.append(pd.DataFrame({'dataset':N.G.graph['name'],
+                                         'N':N.G.number_of_nodes(),
+                                         'E':N.G.number_of_edges(),
+                                         'class':N.G.graph['class'],
+                                         'minority':N.G.graph['labels'][1],
+                                         'H':estimator.get_homophily(N.G),
+                                         'B':estimator.get_minority_fraction(N.G),
+                                         'hmm':hmm,
+                                         'hMM':hMM },
+                                        columns=cols, index=[0]), ignore_index=True)
+
+        df.sort_values('dataset', ascending=True, inplace=True)
+        df.reset_index(inplace=True, drop=True)
+        io.write_csv(df, fn_summary)
+
+    df.H = df.H.round(2)
+    df.B = df.B.round(2)
+    df.hmm = df.hmm.round(2)
+    df.hMM = df.hMM.round(2)
+
+    return df
+
 
 ############################################################################################################
 # Plots RQ1: Structure vs Performance (ROCAUC)
@@ -125,6 +173,11 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
                                            'lw': 2,
                                            'ec': 'k', 'fc': 'k'},
                                va='center')
+
+    if tmp[columns['m']].nunique() % 2 == 0:
+        for ax in fg.axes.flatten():
+            ax.set_ylabel('')
+        fg.axes[1,0].text(s=evaluation, x=-5.5, y=1.15, rotation=90, va='center')
 
     plt.subplots_adjust(hspace=0.05, wspace=0.05)
 
@@ -267,6 +320,8 @@ def plot_model_vs_data(df, fn):
     plt.close()
     tmp = df.copy()
     tmp.loc[:,'pseeds'] = tmp.apply(lambda row: int(row.pseeds*100), axis=1)
+    tmp.sort_values(['dataset','pseeds'], ascending=True, inplace=True)
+
     x = 'pseeds'
     y = 'ROCAUC'
     fg = sns.catplot(data=tmp,
@@ -275,7 +330,7 @@ def plot_model_vs_data(df, fn):
                      aspect=0.85,
                      palette="Paired",
                      col='dataset', x=x, y=y,
-                     hue='source',hue_order=['model','data'])
+                     hue='kind')
 
     fg.set_titles("{col_name}")
     subfigurelabel = ['a','b','c','d','e','f']
@@ -363,31 +418,6 @@ def plot_estimation_errors_per_H_B_rocauc(df, columns, metricx, metricy,fn=None)
              height=1.5, aspect=1.2, grid=True, xlabelpos=(-0.08, -0.2), ylabelpos=(-0.105, 0.05))
     return
 
-# def plot_estimation_errors_per_rocauc_sampling(df, columns, metricx, metricy,fn=None):
-#     x = columns[metricx]
-#     y = columns[metricy]
-#     row = None
-#     col = columns['sampling']
-#     hue = columns['rocauc']
-#     palette = "BrBG"
-#
-#     tmp = df.copy()
-#     sampling_order = _sort_sampling_methods(tmp['sampling'].unique())
-#     #tmp = tmp.groupby(['sampling','pseeds']).mean().reset_index()
-#     tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
-#
-#     _plot_by(tmp, x, y, row=row, col=col, hue=hue, hue_order=None,col_order=sampling_order,
-#              kind="scatter", fn=fn,
-#              ylabel=(True,True),
-#              legend=True, toplegend=False,
-#              yticklabels=True, xlabel=True,
-#              logy=False,
-#              height=2.0,
-#              aspect=0.9,
-#              xlim=(-0.3,0.6),
-#              ylim=(-0.6,0.6),
-#              palette=palette)
-
 def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy, sampling=None, fn=None):
 
     validate_metric(metricx)
@@ -418,10 +448,10 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
                 shortaxislabels=True,
                 xlim=(-0.03, tmp[columns[metricx]].max()+0.03),
                 ylim=(-0.018, tmp[columns[metricy]].max()+0.03),
-                height=1.5, aspect=1.2,
+                height=1.5, aspect=1.1,
                 grid=True,
-                fn=fn.replace('<sampling>',sampling),
-                xlabelpos=(-0.3, -0.11), ylabelpos=(-0.2, 0.0))
+                fn=fn.replace('<sampling>',sampling).replace('\_',''),
+                xlabelpos=(-0.35, -0.11), ylabelpos=(-0.25, 0.0))
     else:
         # Plotting only 1 sampling technique (full plot)
         # available sampling methods: nodes, neighbors, nedges, degree, partial
@@ -625,16 +655,16 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     elif kind == 'line':
         fg = fg.map_dataframe(_plot_lines, x, y, marker='o', lw=1.0, alpha=1.0)
     elif kind == 'scatter':
-        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.5, vmin=0, vmax=1)
+        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=1.0, vmin=0, vmax=1)
 
     x = unlatexfyme(x)
     y = unlatexfyme(y)
 
     for ax in fg.axes.flatten():
         if 'SE' in x or 'EE' in x:
-            ax.axvline(baseline[x[:2]], lw=0.5, ls='-', c='red')
+            ax.axvline(baseline[x[:2]], lw=0.5, ls='--', c='red')
         if 'SE' in y or 'EE' in y:
-            ax.axhline(baseline[x[:2]], lw=0.5, ls='-', c='red')
+            ax.axhline(baseline[x[:2]], lw=0.5, ls='--', c='red')
 
     if shortaxislabels:
         x = _get_short_axis_label(x)
@@ -842,3 +872,28 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     # plt.show()
     # plt.close()
 
+
+# def plot_estimation_errors_per_rocauc_sampling(df, columns, metricx, metricy,fn=None):
+#     x = columns[metricx]
+#     y = columns[metricy]
+#     row = None
+#     col = columns['sampling']
+#     hue = columns['rocauc']
+#     palette = "BrBG"
+#
+#     tmp = df.copy()
+#     sampling_order = _sort_sampling_methods(tmp['sampling'].unique())
+#     #tmp = tmp.groupby(['sampling','pseeds']).mean().reset_index()
+#     tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+#
+#     _plot_by(tmp, x, y, row=row, col=col, hue=hue, hue_order=None,col_order=sampling_order,
+#              kind="scatter", fn=fn,
+#              ylabel=(True,True),
+#              legend=True, toplegend=False,
+#              yticklabels=True, xlabel=True,
+#              logy=False,
+#              height=2.0,
+#              aspect=0.9,
+#              xlim=(-0.3,0.6),
+#              ylim=(-0.6,0.6),
+#              palette=palette)

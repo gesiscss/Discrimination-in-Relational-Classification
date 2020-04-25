@@ -80,10 +80,19 @@ def get_density(graph):
 
 def _get_global_estimates(index, row, cols, output):
 
-    files = glob.glob(output + '/{}*N{}*m{}*B{}*H{}*/P10_graph_1.gpickle'.format(row['kind'],row['N'],row['m'],row['B'],row['H']), recursive=True)
+    # BAH-N2000-m20-B0.3-H0.9-i3-x5-h0.9-k39.6-km36.5-kM40.9_nodes 11
+    # Caltech36_nodes 1
+    # BAH-Caltech36-N701-m2-B0.3-H0.8-i3-x5-h0.8-k4.0-km3.5-kM4.2_nodes 12
 
-    if len(files) <= 0:
-        files = glob.glob(output + '/{}*/P10_graph_1.gpickle'.format(row['kind']), recursive=True)
+    if row['kind'] == 'empirical':
+        # empirical
+        files = glob.glob(output + '/{}_*/P10_graph_1.gpickle'.format(row['dataset']), recursive=True)
+    elif row['dataset'] == '-':
+        # model
+        files = glob.glob(output + '/{}*N{}*m{}*B{}*H{}*/P10_graph_1.gpickle'.format(row['kind'], row['N'], row['m'], row['B'],row['H']), recursive=True)
+    else:
+        # fit
+        files = glob.glob(output + '/*-{}*N{}*m{}*B{}*H{}*/P10_graph_1.gpickle'.format(row['dataset'],row['N'],row['m'],row['B'],row['H']), recursive=True)
 
     if len(files) <= 0:
         raise Exception('network does not exist: {}\n{}'.format(len(files), row))
@@ -91,12 +100,20 @@ def _get_global_estimates(index, row, cols, output):
     p, cp = None, None
     for fn in files:
         G = io.load_gpickle(fn)
-        if get_density(G) == row['density']:
+        d = get_density(G)
+
+        if d == row['density']:
             p = prior_learn(G)
             cp = nBC_learn(G)
             break
 
     if p is None or cp is None:
+        print()
+        print(len(files))
+        print(files)
+        print(G.graph)
+        print(d, row['density'])
+
         raise Exception('network does not exist with density: \n{}'.format(row))
 
     # {'attributes': ['color'],
@@ -118,17 +135,18 @@ def _get_global_estimates(index, row, cols, output):
     #  'name': 'Caltech36'}
 
     return pd.DataFrame({'kind': row['kind'],
-                        'N': row['N'],
-                        'm': row['m'],
-                        'density': get_density(G),
-                        'B': row['B'],
-                        'H': row['H'],
-                        'p0': p.iloc[0],
-                        'p1': p.iloc[1],
-                        'cp00': cp.iloc[0, 0],
-                        'cp01': cp.iloc[0, 1],
-                        'cp10': cp.iloc[1, 0],
-                        'cp11': cp.iloc[1, 1],
+                         'dataset': row['dataset'],
+                         'N': row['N'],
+                         'm': row['m'],
+                         'density': d,
+                         'B': row['B'],
+                         'H': row['H'],
+                         'p0': p.iloc[0],
+                         'p1': p.iloc[1],
+                         'cp00': cp.iloc[0, 0],
+                         'cp01': cp.iloc[0, 1],
+                         'cp10': cp.iloc[1, 0],
+                         'cp11': cp.iloc[1, 1],
                         }, columns=cols, index=[0])
 
 def get_global_estimates(df, LC, RC, output, njobs=1):
@@ -141,14 +159,14 @@ def get_global_estimates(df, LC, RC, output, njobs=1):
     if RC != NETWORK_ONLY_BAYES:
         raise Exception("RC {} does not exist.".format(RC))
 
-    cols = ['kind','N','m','density','B','H','p0','p1','cp00','cp01','cp10','cp11']
+    cols = ['kind','dataset','N','m','density','B','H','p0','p1','cp00','cp01','cp10','cp11']
     results = Parallel(n_jobs=njobs)(delayed(_get_global_estimates)(index,row,cols,output) for index, row in df.iterrows())
 
     return pd.concat(results, ignore_index=True)
 
 def merge_global_estimates(df, LC, RC, output, njobs=1):
 
-    df_target = df.groupby(['kind', 'N', 'm', 'density', 'B', 'H']).size().reset_index()
+    df_target = df.groupby(['kind', 'dataset', 'N', 'm', 'density', 'B', 'H']).size().reset_index()
     df_global_estimates = get_global_estimates(df_target, LC, RC, output, njobs)
 
     df = df.merge(df_global_estimates, left_on=['N', 'B', 'H', 'density'], right_on=['N', 'B', 'H', 'density'], how='left', suffixes=("", "_g"))
@@ -282,3 +300,91 @@ def get_analytical_estimators(B, H):
 
 def get_small_sample_error(P):
     return np.sqrt(P)
+
+
+def estimate_homophily_BAH_empirical(graph, fm=None, EMM=None, EMm=None, EmM=None, Emm=None, gammaM_in=None, gammam_in=None, verbose=False):
+
+    hmm = []
+    hMM = []
+    diff = []
+
+    if graph is not None and (fm is None or EMM is None or EMm is None or EmM is None or Emm is None):
+        Emm, EmM, EMM, EMm = get_edge_type_counts(graph)
+        fm = get_minority_fraction(graph)
+    elif graph is None and (fm is None or EMM is None or EMm is None or EmM is None or Emm is None):
+        raise Exception('Missing important parameters.')
+
+    E = EMM + EMm + EmM + Emm
+    min_min = Emm / E
+    maj_maj = EMM / E
+    min_maj = ( EmM + EMm ) / E
+    fM = 1 - fm
+
+    # calculating ca for undirected
+    K_m = min_min + min_maj
+    K_M = maj_maj + min_maj
+    K_all = K_m + K_M
+
+    cm = (K_m) / K_all
+    if verbose:
+        print(cm)
+
+    for h_mm_ in np.arange(0, 1.01, 0.01):
+        for h_MM_ in np.arange(0, 1.01, 0.01):
+
+            h_mm_analytical = h_mm_
+            h_MM_analytical = h_MM_
+
+            h_mM_analytical = 1 - h_mm_analytical
+            h_Mm_analytical = 1 - h_MM_analytical
+
+            if gammaM_in is None:
+                try:
+                    gamma_M = float(fM * h_MM_analytical) / ((h_Mm_analytical * cm) + (h_MM_analytical * (2 - cm))) + float(fm * h_mM_analytical) / ((h_mm_analytical * cm) + (h_mM_analytical * (2 - cm)))
+                except RuntimeWarning:
+                    if verbose:
+                        print('break 2')
+                    break
+            else:
+                gamma_M = gammaM_in
+
+            if gammam_in is None:
+                try:
+                    gamma_m = float(fm * h_mm_analytical) / ((h_mm_analytical * cm) + (h_mM_analytical * (2 - cm))) + float(fM * h_Mm_analytical) / ((h_Mm_analytical * cm) + (h_MM_analytical * (2 - cm)))
+                except RuntimeWarning as ex:
+                    if verbose:
+                        print('break 1')
+                    break
+            else:
+                gamma_m = gammam_in
+
+            K = 1 - gamma_m
+            Z = 1 - gamma_M
+
+            if ((fm * h_mm_analytical * Z) + ((1 - fm) * (1 - h_mm_analytical) * K) == 0 or (fM * h_MM_analytical * K) + (fm * (1 - h_MM_analytical) * Z)) == 0:
+                break
+
+            pmm_analytical = float(fm * h_mm_analytical * Z) / ((fm * h_mm_analytical * Z) + ((1 - fm) * (1 - h_mm_analytical) * K))
+            pMM_analytical = float(fM * h_MM_analytical * K) / ((fM * h_MM_analytical * K) + (fm * (1 - h_MM_analytical) * Z))
+
+            if min_min + min_maj + maj_maj == 0:
+                # bipartite
+                raise NotImplementedError('This model does not support bipartite networks.')
+            else:
+                pmm_emp = float(min_min) / (min_min + min_maj)
+                pMM_emp = float(maj_maj) / (maj_maj + min_maj)
+
+            _diff = abs(pmm_emp - pmm_analytical) + abs(pMM_emp - pMM_analytical)
+            diff.append(_diff)
+            hmm.append(h_mm_analytical)
+            hMM.append(h_MM_analytical)
+
+            if verbose and _diff < 0.02:
+                print()
+                print('pmm_emp', pmm_emp, 'pmm_analytical', pmm_analytical)
+                print('pMM_emp', pMM_emp, 'pMM_analytical', pMM_analytical)
+                print('pMM_diff', abs(pmm_emp - pmm_analytical), 'pMM_diff', abs(pMM_emp - pMM_analytical), 'diff', _diff)
+                print('h_mm_analytical', h_mm_analytical, 'h_MM_analytical', h_MM_analytical, 'cm_analytical', cm)
+
+    best = np.argmin(diff)
+    return hmm[best], hMM[best]

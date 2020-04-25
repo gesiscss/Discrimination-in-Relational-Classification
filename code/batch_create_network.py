@@ -17,9 +17,15 @@ def run(params):
         emp.load(datafn=params.fit, ignoreInt=params.ignoreInt)
         N = emp.G.number_of_nodes()
         m = max(estimator.get_min_degree(emp.G), 2)
-        H = round(estimator.get_homophily(emp.G), 1)
         B = round(estimator.get_minority_fraction(emp.G), 1)
+
         fit = emp.G.graph['name']
+        Hs = {'Caltech36': 0.56, 'Swarthmore42':0.53, 'USF512009': 0.45, 'Wikipedia': 0.60}
+        if fit in Hs:
+            H = Hs[fit]
+            print('fixed H: {}'.format(H))
+        else:
+            H = round(estimator.get_homophily(emp.G), 2)
 
     else:
         N = params.N
