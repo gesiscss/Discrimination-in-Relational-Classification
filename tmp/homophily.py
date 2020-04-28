@@ -8,6 +8,7 @@ from joblib import Parallel
 from joblib import delayed
 import pandas as pd
 import os
+import powerlaw
 
 from generate_homophilic_graph_asymmetric import homophilic_barabasi_albert_graph_assym
 
@@ -121,12 +122,16 @@ def get_edge_type_counts(G, fraction=False):
         
     return min_min , maj_min , min_maj, maj_maj
 
+##########################################################################
+# Given a specific empirical network
+##########################################################################
+
 def _get_diff(hmm,hMM, N,m, fm, Emm, EMm, EmM, EMM):
     hmm = round(hmm,2)
     hMM = round(hMM,2)
     g = homophilic_barabasi_albert_graph_assym(N, m, fm, round(1.0-hmm,2), round(1.0-hMM,2))
     emm, eMm, emM, eMM = get_edge_type_counts(g,True) 
-    diff = abs(Emm-emm)+abs(EMM-eMM)+abs(EmM-emM)+abs(EMm-eMm)
+    diff = abs(Emm-emm)+abs(EMM-eMM)+abs( (EmM+EMm) - (emM+eMm) )
     print('hmm:{:.2f} hMM:{:.2f} diff:{:.10f}'.format(hmm,hMM,diff))
     del(g)
     return (diff, (hmm,hMM))
@@ -149,6 +154,9 @@ def get_homophily_MLE(G, njobs=1):
     best = np.argmin(results_diff)
     return results_h[best]
             
+##########################################################################
+# For all fm and hmm, hMM
+##########################################################################
 
 def _get_evalues(N, m, fm, hmm, hMM):
     hmm = round(hmm,2)
@@ -197,5 +205,23 @@ def find_homophily_MLE(G, df):
     id = tmp['diff'].idxmin()
     
     return df.loc[id,'hmm'], df.loc[id,'hMM']
-            
+      
     
+##########################################################################
+# Out-Degree Distribution
+##########################################################################
+
+def fit_power_law(data, discrete=True):
+    return powerlaw.Fit(data,
+                        discrete=discrete,
+                        verbose=False)
+
+def get_outdegree_powerlaw_exponents(g):
+         
+    x = np.array([d for n, d in g.degree() if g.graph['labels'].index(g.node[n][g.graph['class']]) == 0])
+    fitM = fit_power_law(x)
+
+    x = np.array([d for n, d in g.degree() if g.graph['labels'].index(g.node[n][g.graph['class']]) == 1])
+    fitm = fit_power_law(x)
+
+    return fitm, fitM
