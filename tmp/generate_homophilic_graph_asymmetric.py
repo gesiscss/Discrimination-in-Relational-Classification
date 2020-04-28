@@ -57,14 +57,13 @@ def homophilic_barabasi_albert_graph_assym(N, m , minority_fraction, h_ab , h_ba
     h_aa = 1 - h_ab
     h_bb = 1 - h_ba
 
-    print('#### values from the network function')
-
-    print(h_aa , h_bb)
+    #print('#### values from the network function')
+    #print(h_aa , h_bb)
 
 
     # Add m initial nodes (m0 in barabasi-speak)
     G = nx.Graph()
-
+    
     minority = int(minority_fraction * N)
 
     minority_nodes = random.sample(range(N),minority)
@@ -111,6 +110,12 @@ def homophilic_barabasi_albert_graph_assym(N, m , minority_fraction, h_ab , h_ba
         target_list.append(source)
         source += 1
 
+    G.graph = {'attributes': ['color'],
+               'class': 'color',
+               'group': ['M', 'm'],
+               'labels': ['blue', 'red'],
+               'name': 'homophilic_barabasi_albert'}
+    
     return G
 
 def _pick_targets(G,source,target_list,dist,m):
