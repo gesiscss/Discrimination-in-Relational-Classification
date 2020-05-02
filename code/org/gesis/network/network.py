@@ -7,7 +7,8 @@ import os
 ############################################
 # Local dependencies
 ############################################
-from org.gesis.network.generate_homophilic_graph_symmetric import homophilic_barabasi_albert_graph as BAH
+from org.gesis.network.generate_homophilic_graph_symmetric import homophilic_barabasi_albert_graph as BAHsym
+from org.gesis.network.homophilic_barabasi_albert_graph_assym import homophilic_barabasi_albert_graph_assym as BAHasym
 from utils.estimator import get_similitude
 from utils.estimator import get_homophily
 from utils.estimator import get_minority_fraction
@@ -42,8 +43,15 @@ class Network(object):
         Creates a new instance of the respective network type
         - kwargs: network properties
         '''
-        if self.kind == BARABASI_ALBERT_HOMOPHILY:            
-            self.G = BAH(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], similitude=kwargs['H'])
+        sym = False
+
+        if self.kind == BARABASI_ALBERT_HOMOPHILY:
+
+            if kwargs['H'] is not None:
+                sym = True
+                self.G = BAHsym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], similitude=kwargs['H'])
+            elif kwargs['Hmm'] is not None and kwargs['HMM'] is not None:
+                self.G = BAHasym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], h_mM=1-kwargs['Hmm'], h_Mm=1-kwargs['HMM'])
 
             h = get_similitude(self.G)
             b = get_minority_fraction(self.G)
@@ -59,6 +67,8 @@ class Network(object):
             self.G.graph['density'] = density
             self.G.graph['B'] = kwargs['B']
             self.G.graph['H'] = kwargs['H']
+            self.G.graph['Hmm'] = kwargs['Hmm']
+            self.G.graph['HMM'] = kwargs['HMM']
             self.G.graph['i'] = i
             self.G.graph['x'] = x
 
@@ -72,11 +82,11 @@ class Network(object):
             self.G.graph['kM'] = kM
 
             prefix = self.kind if self.fit is None else '{}-{}'.format(self.kind, self.fit)
-            fullname = "{}-N{}-m{}-B{}-H{}-i{}-x{}-h{}-k{}-km{}-kM{}".format(prefix,
+            fullname = "{}-N{}-m{}-B{}-{}-i{}-x{}-h{}-k{}-km{}-kM{}".format(prefix,
                                                                             kwargs['N'],
                                                                             kwargs['m'],
                                                                             kwargs['B'],
-                                                                            kwargs['H'],
+                                                                            'H{}'.format(kwargs['H']) if sym else 'Hmm{}-HMM{}'.format(kwargs['Hmm'], kwargs['HMM']),
                                                                             i,
                                                                             x,
                                                                             round(h,1),
@@ -110,7 +120,7 @@ class Network(object):
         self.G.remove_nodes_from(to_remove)
 
         # 3.metadata
-        H = get_homophily(self.G)
+        #H = get_homophily(self.G)
         h = get_similitude(self.G)
         b = get_minority_fraction(self.G)
         k, km, kM = get_average_degrees(self.G)
@@ -119,13 +129,25 @@ class Network(object):
 
         self.G.graph["fullname"] = os.path.basename(datafn).replace(".gpickle","")
         self.G.graph['kind'] = self.kind
-        self.G.graph['N'] = get_param(datafn, "N") or self.G.number_of_nodes()
-        self.G.graph['m'] = get_param(datafn, "m") or m
         self.G.graph['density'] = density
-        self.G.graph['B'] = get_param(datafn, "B") or b
-        self.G.graph['H'] = get_param(datafn, "H") or H
-        self.G.graph['i'] = get_param(datafn, "i")
-        self.G.graph['x'] = get_param(datafn, "x")
+
+        for param in ['N','m','B','H','Hmm','HMM','i','x']:
+            if param not in self.G.graph:
+                self.G.graph[param] = get_param(datafn, param)
+
+        # self.G.graph['N'] = get_param(datafn, "N") or self.G.number_of_nodes()
+        # self.G.graph['m'] = get_param(datafn, "m") or m
+        # self.G.graph['density'] = density
+        # self.G.graph['B'] = get_param(datafn, "B") or b
+        #
+        # if 'H' not in self.G.graph:
+        #     self.G.graph['H'] = get_param(datafn, "H") or H
+        # if 'Hmm' not in self.G.graph:
+        #     self.G.graph['Hmm'] = get_param(datafn, "Hmm")
+        # if 'HMM' not in self.G.graph:
+        # self.G.graph['HMM'] = get_param(datafn, "HMM")
+        # self.G.graph['i'] = get_param(datafn, "i")
+        # self.G.graph['x'] = get_param(datafn, "x")
 
         self.G.graph['n'] = self.G.number_of_nodes()
         self.G.graph['e'] = self.G.number_of_edges()

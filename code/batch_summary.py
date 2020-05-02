@@ -25,6 +25,8 @@ def run(params):
     print(df_results.head(5))
     print(df_results.shape)
     print(df_results.sampling.unique())
+    print(df_results.dataset.unique())
+    print(df_results.kind.unique())
     print()
 
     ### 2. Global estimates

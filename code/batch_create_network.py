@@ -9,7 +9,7 @@ from utils.arguments import init_batch_create_network
 
 def run(params):
 
-    ### 1. Load empirical network
+    ### 1. Load empirical network (asymmetric homophily)
     if params.fit is not None:
         print("")
         printf("*** Loading empirical Network ***")
@@ -17,20 +17,18 @@ def run(params):
         emp.load(datafn=params.fit, ignoreInt=params.ignoreInt)
         N = emp.G.number_of_nodes()
         m = max(estimator.get_min_degree(emp.G), 2)
-        B = round(estimator.get_minority_fraction(emp.G), 1)
+        B = round(estimator.get_minority_fraction(emp.G), 2)
+        H = None
+        Hmm = round(emp.G.graph['Hmm'], 2)
+        HMM = round(emp.G.graph['HMM'], 2)
 
         fit = emp.G.graph['name']
-        Hs = {'Caltech36': 0.56, 'Swarthmore42':0.53, 'USF512009': 0.45, 'Wikipedia': 0.60}
-        if fit in Hs:
-            H = Hs[fit]
-            print('fixed H: {}'.format(H))
-        else:
-            H = round(estimator.get_homophily(emp.G), 2)
-
     else:
         N = params.N
         m = params.m
         H = params.H
+        Hmm = params.Hmm
+        HMM = params.HMM
         B = params.B
         fit = None
 
@@ -38,7 +36,7 @@ def run(params):
     print("")
     printf("*** Creating Network ***")
     net = Network(params.kind, fit)
-    net.create_network(N=N, m=m, B=B, H=H, i=params.i, x=params.x)
+    net.create_network(N=N, m=m, B=B, H=H, Hmm=Hmm, HMM=HMM, i=params.i, x=params.x)
     net.info()
     net.save(params.root)
 

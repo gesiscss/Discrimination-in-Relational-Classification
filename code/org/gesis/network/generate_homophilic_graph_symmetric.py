@@ -99,6 +99,10 @@ def homophilic_barabasi_albert_graph(N, m , minority_fraction, similitude):
                'class': 'color',
                'group': ['M', 'm'],
                'labels': ['blue', 'red'],
+               'H': similitude,
+               'B': minority_fraction,
+               'N': N,
+               'm': m,
                'name': 'homophilic_barabasi_albert'}
         
     return G

@@ -4,6 +4,7 @@
 import os
 import time
 import glob
+import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 
@@ -70,17 +71,18 @@ def is_inference_summary_done(output, kind, LC, RC, CI, sampling):
 
 def _load_pickle_to_dataframe(fn, verbose=True):
     obj = load_pickle(fn, verbose)
-    columns = ['kind', 'dataset', 'N', 'm', 'density', 'B', 'H', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias', 'lag','p0','p1','cp00','cp01','cp11','cp10']
+    columns = ['kind', 'dataset', 'N', 'm', 'density', 'B', 'H', 'Hmm', 'HMM', 'i', 'x', 'sampling', 'pseeds', 'epoch', 'n', 'e', 'min_degree', 'rocauc', 'mae', 'ccm', 'ccM', 'bias', 'lag','p0','p1','cp00','cp01','cp11','cp10']
 
     # BAH-N2000-m20-B0.3-H0.9-i3-x5-h0.9-k39.6-km36.5-kM40.9_nodes 11
     # Caltech36_nodes 1
-    # BAH-Caltech36-N701-m2-B0.3-H0.8-i3-x5-h0.8-k4.0-km3.5-kM4.2_nodes 12
+    # BAH-Caltech36-N701-m2-B0.33-Hmm0.63-HMM0.44-i1-x5-h0.5-k4.0-km5.0-kM3.5_nodes 13
 
     foldername = fn.split("/")[-2]
     nvars = len(foldername.split("-"))
 
-    kind = foldername.split('-')[0] if nvars == 12 else foldername.split('-')[0] if nvars == 11 else 'empirical'
-    dataset = foldername.split('-')[1] if nvars == 12 else '-' if nvars == 11 else foldername.split('_')[0]
+    kind = foldername.split('-')[0] if nvars in [11,13] else 'empirical'
+    dataset = foldername.split('-')[1] if nvars == 13 else '-' if nvars == 11 else foldername.split('_')[0]
+    h = float(obj['H']) if 'H' in obj else np.mean([float(obj['Hmm']),float(obj['HMM'])])
 
     df = pd.DataFrame({'kind': kind,
                        'dataset':dataset,
@@ -88,7 +90,9 @@ def _load_pickle_to_dataframe(fn, verbose=True):
                        'm': int(obj['m']),
                        'density': float(obj['density']),
                        'B': float(obj['B']),
-                       'H': float(obj['H']),
+                       'H': h,
+                       'Hmm': float(obj['Hmm']) if 'Hmm' in obj else h,
+                       'HMM': float(obj['HMM']) if 'HMM' in obj else h,
                        'i': obj['i'] if obj['i'] is None else int(obj['i']),
                        'x': obj['x'] if obj['x'] is None else int(obj['x']),
                        'sampling': obj['sampling'],
@@ -263,6 +267,8 @@ class Inference(object):
         obj['density'] = self.G.graph['density']
         obj['B'] = self.G.graph['B']
         obj['H'] = self.G.graph['H']
+        obj['Hmm'] = self.G.graph['Hmm']
+        obj['HMM'] = self.G.graph['HMM']
         obj['i'] = self.G.graph['i']
         obj['x'] = self.G.graph['x']
 
@@ -316,20 +322,9 @@ class Inference(object):
         files = glob.glob(output + exp, recursive=True)
         print('{} files found.'.format(len(files)))
 
-        # filess = {'fit':None, 'empirical':None, 'BAH':None}
-        # for fn in files:
-        #     if 'BAH-Caltech' in fn and filess['fit'] is None:
-        #         filess['fit'] = fn
-        #     elif 'BAH-N' in fn and filess['BAH'] is None:
-        #         filess['BAH'] = fn
-        #     elif 'BAH' not in fn and filess['empirical'] is None:
-        #         filess['empirical'] = fn
-        #
-        #     if filess['fit'] is not None and filess['empirical'] is not None and filess['BAH'] is not None:
-        #         break
-        # files = list(filess.values())
-
         results = Parallel(n_jobs=njobs)(delayed(_load_pickle_to_dataframe)(fn, verbose) for fn in files)
+        print('{} files processed.'.format(len(files)))
+
         df = pd.concat(results).reset_index(drop=True)
         df.loc[:, 'network_size'] = df.apply(lambda row: "N{}, m{}".format(row["N"], row["m"]), axis=1)
 
