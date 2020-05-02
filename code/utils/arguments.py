@@ -31,7 +31,19 @@ def init_batch_create_network():
                         dest='H',
                         type=float,
                         default=None,
-                        help='Homophily')
+                        help='Homophily symmetric')
+
+    parser.add_argument('-Hmm', action='store',
+                        dest='Hmm',
+                        type=float,
+                        default=None,
+                        help='Homophily among minorities (asymmetric)')
+
+    parser.add_argument('-HMM', action='store',
+                        dest='HMM',
+                        type=float,
+                        default=None,
+                        help='Homophily among majorities (asymmetric)')
 
     parser.add_argument('-fit', action='store',
                         dest='fit',

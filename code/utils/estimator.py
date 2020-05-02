@@ -15,18 +15,31 @@ from utils import io
 def get_param(datafn, key):
     # BAH-N2000-m20-B0.1-H0.0-i1-x5-h0.0-k37.9-km189.4-kM21.0.gpickle
     # Swarthmore42.gpickle
+    # BAH-Swarthmore42-N1519-m2-B0.49-Hmm0.54-HMM0.51-i1-x5-h0.5-k4.0-km4.1-kM3.9_nodes
 
     if not key.startswith("-"):
         key = '-{}'.format(key)
 
     if key in datafn:
-        return datafn.split(key)[-1].split("-")[0].replace(".gpickle","")
+        tokens = datafn.split(key)
+
+        if key == '-H' and len(tokens) == 3 and '-Hmm' in datafn and '-HMM' in datafn:
+            Hmm = float(datafn.split('-Hmm')[-1].split('-')[0])
+            HMM = float(datafn.split('-HMM')[-1].split('-')[0])
+            return round(np.mean([Hmm,HMM]),2)
+
+        elif key != '-H':
+            return tokens[-1].split("-")[0].replace(".gpickle","")
 
     return None
 
-def get_edge_type_counts(graph):
+def get_edge_type_counts(graph, fractions=False):
     counts = Counter([ '{}{}'.format(graph.graph['group'][graph.graph['labels'].index(graph.node[edge[0]][graph.graph['class']])],
                                      graph.graph['group'][graph.graph['labels'].index(graph.node[edge[1]][graph.graph['class']])]) for edge in graph.edges()])
+    if fractions:
+        total = float(counts['mm'] + counts['mM'] + counts['MM'] + counts['Mm'])
+        return counts['mm']/total, counts['mM']/total, counts['MM']/total, counts['Mm']/total
+
     return counts['mm'], counts['mM'], counts['MM'], counts['Mm']
 
 def get_homophily(graph, smooth=1):
@@ -82,17 +95,17 @@ def _get_global_estimates(index, row, cols, output):
 
     # BAH-N2000-m20-B0.3-H0.9-i3-x5-h0.9-k39.6-km36.5-kM40.9_nodes 11
     # Caltech36_nodes 1
-    # BAH-Caltech36-N701-m2-B0.3-H0.8-i3-x5-h0.8-k4.0-km3.5-kM4.2_nodes 12
+    # BAH-Caltech36-N701-m2-B0.33-Hmm0.63-HMM0.44-i1-x5-h0.5-k4.0-km5.0-kM3.5_nodes 13
 
     if row['kind'] == 'empirical':
         # empirical
-        files = glob.glob(output + '/{}_*/P10_graph_1.gpickle'.format(row['dataset']), recursive=True)
+        files = glob.glob(output + '/{}_*/P50_graph_1.gpickle'.format(row['dataset']), recursive=True)
     elif row['dataset'] == '-':
         # model
-        files = glob.glob(output + '/{}*N{}*m{}*B{}*H{}*/P10_graph_1.gpickle'.format(row['kind'], row['N'], row['m'], row['B'],row['H']), recursive=True)
+        files = glob.glob(output + '/{}*N{}*m{}*B{}*H{}*/P50_graph_1.gpickle'.format(row['kind'], row['N'], row['m'], row['B'],row['H']), recursive=True)
     else:
         # fit
-        files = glob.glob(output + '/*-{}*N{}*m{}*B{}*H{}*/P10_graph_1.gpickle'.format(row['dataset'],row['N'],row['m'],row['B'],row['H']), recursive=True)
+        files = glob.glob(output + '/{}-{}-N{}-m{}-B{}-Hmm{}-HMM{}-*/P50_graph_1.gpickle'.format(row['kind'], row['dataset'],row['N'],row['m'],row['B'],row['Hmm'],row['HMM']), recursive=True)
 
     if len(files) <= 0:
         raise Exception('network does not exist: {}\n{}'.format(len(files), row))
@@ -141,6 +154,8 @@ def _get_global_estimates(index, row, cols, output):
                          'density': d,
                          'B': row['B'],
                          'H': row['H'],
+                         'Hmm': row['Hmm'] if 'Hmm' in row else None,
+                         'HMM': row['HMM'] if 'HMM' in row else None,
                          'p0': p.iloc[0],
                          'p1': p.iloc[1],
                          'cp00': cp.iloc[0, 0],
@@ -159,17 +174,27 @@ def get_global_estimates(df, LC, RC, output, njobs=1):
     if RC != NETWORK_ONLY_BAYES:
         raise Exception("RC {} does not exist.".format(RC))
 
-    cols = ['kind','dataset','N','m','density','B','H','p0','p1','cp00','cp01','cp10','cp11']
+    cols = ['kind','dataset','N','m','density','B','H','Hmm','HMM','p0','p1','cp00','cp01','cp10','cp11']
     results = Parallel(n_jobs=njobs)(delayed(_get_global_estimates)(index,row,cols,output) for index, row in df.iterrows())
 
     return pd.concat(results, ignore_index=True)
 
 def merge_global_estimates(df, LC, RC, output, njobs=1):
+    gcols = ['kind', 'dataset', 'N', 'm', 'B', 'H', 'Hmm', 'HMM', 'density']
 
-    df_target = df.groupby(['kind', 'dataset', 'N', 'm', 'density', 'B', 'H']).size().reset_index()
+    df_target = df.groupby(gcols).size().reset_index()
+    #print(df_target.head(1))
+    print(df_target.shape)
+    print(df_target[gcols].sample(10))
+
     df_global_estimates = get_global_estimates(df_target, LC, RC, output, njobs)
+    #print(df_global_estimates.head(1))
+    print(df_global_estimates.shape)
+    print(df_global_estimates[gcols].sample(10))
 
-    df = df.merge(df_global_estimates, left_on=['N', 'B', 'H', 'density'], right_on=['N', 'B', 'H', 'density'], how='left', suffixes=("", "_g"))
+    df = df.merge(df_global_estimates, left_on=gcols, right_on=gcols, how='left', suffixes=("", "_g"))
+    print(df.head(1))
+    print(df.shape)
 
     df.loc[:, 'EEp0'] = df.apply(lambda row: row['p0'] - row["p0_g"], axis=1)
     df.loc[:, 'EEp1'] = df.apply(lambda row: row['p1'] - row["p1_g"], axis=1)

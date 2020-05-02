@@ -1,4 +1,3 @@
-import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,8 +6,6 @@ import seaborn as sns
 import sympy
 from matplotlib import rc
 from palettable.colorbrewer.diverging import RdBu_11
-from utils import io
-from utils import estimator
 
 ############################################################################################################
 # Constants
@@ -64,45 +61,6 @@ def unlatexfyme(text):
 # Latex tables
 ############################################################################################################
 
-def show_datasets_summary(datapath, latex=False, output=None):
-    from org.gesis.network.network import Network
-
-    fn_summary = os.path.join(output, 'summary_datasets.csv')
-
-    if os.path.exists(fn_summary):
-        df = io.load_csv(fn_summary)
-    else:
-        cols = ['dataset','N','E','class','minority','H','B','hmm','hMM']
-        df = pd.DataFrame(columns=cols)
-        files = [os.path.join(datapath, fn) for fn in os.listdir(datapath) if fn.endswith('.gpickle') and not fn.startswith('BAH')]
-        for fn in files:
-            print(fn)
-            N = Network()
-            N.load(fn, ignoreInt=0)
-
-            hmm, hMM  = estimator.estimate_homophily_BAH_empirical(N.G)
-
-            df = df.append(pd.DataFrame({'dataset':N.G.graph['name'],
-                                         'N':N.G.number_of_nodes(),
-                                         'E':N.G.number_of_edges(),
-                                         'class':N.G.graph['class'],
-                                         'minority':N.G.graph['labels'][1],
-                                         'H':estimator.get_homophily(N.G),
-                                         'B':estimator.get_minority_fraction(N.G),
-                                         'hmm':hmm,
-                                         'hMM':hMM },
-                                        columns=cols, index=[0]), ignore_index=True)
-
-        df.sort_values('dataset', ascending=True, inplace=True)
-        df.reset_index(inplace=True, drop=True)
-        io.write_csv(df, fn_summary)
-
-    df.H = df.H.round(2)
-    df.B = df.B.round(2)
-    df.hmm = df.hmm.round(2)
-    df.hMM = df.hMM.round(2)
-
-    return df
 
 
 ############################################################################################################
