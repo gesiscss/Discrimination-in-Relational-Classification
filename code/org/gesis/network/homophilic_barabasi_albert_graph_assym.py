@@ -14,7 +14,7 @@ import bisect
 import copy
 
 
-def homophilic_barabasi_albert_graph_assym(N, m, minority_fraction, h_mM, h_Mm):
+def homophilic_barabasi_albert_graph_assym(N, m, minority_fraction, h_mM, h_Mm, density=None):
     """Return homophilic random graph using BA preferential attachment model.
 
     A graph of n nodes is grown by attaching new nodes each with m
@@ -52,6 +52,14 @@ def homophilic_barabasi_albert_graph_assym(N, m, minority_fraction, h_mM, h_Mm):
     .. [1] A. L. Barabasi and R. Albert "Emergence of scaling in
        random networks", Science 286, pp 509-512, 1999.
     """
+
+    # expected values
+    MORE_E = 0
+    if density is not None:
+        EXPECTED_E = int(round(density*(N*(N-1)/2.)))
+        MIN_E = (N-m) * m
+        MORE_E = EXPECTED_E - MIN_E
+        print('EXPECTED E:  {}'.format(EXPECTED_E))
 
     # a represents minorities
     h_mm = 1 - h_mM
@@ -106,6 +114,17 @@ def homophilic_barabasi_albert_graph_assym(N, m, minority_fraction, h_mM, h_Mm):
         target_list.append(source)
         source += 1
 
+    ### todo: here check density keeping min E = (N*m) (add more egdes?)
+    if MORE_E > 0:
+        counter = 0
+        while counter < MORE_E:
+            s = random.choice(target_list)
+            targets = list(_pick_targets(G, s, target_list, dist, 1))
+            if len(targets) > 0:
+                if not G.has_edge(s,targets[0]):
+                    G.add_edge(s,targets[0])
+                    counter += 1
+
     G.graph = {'attributes': ['color'],
                'class': 'color',
                'group': ['M', 'm'],
@@ -115,6 +134,7 @@ def homophilic_barabasi_albert_graph_assym(N, m, minority_fraction, h_mM, h_Mm):
                'B': minority_fraction,
                'N': N,
                'm': m,
+               'density': density,
                'name': 'homophilic_barabasi_albert'}
 
     return G
@@ -133,6 +153,7 @@ def _pick_targets(G, source, target_list, dist, m):
     count_looking = 0
     if prob_sum == 0:
         return targets
+
     while len(targets) < m:
         count_looking += 1
         if count_looking > len(G):  # if node fails to find target

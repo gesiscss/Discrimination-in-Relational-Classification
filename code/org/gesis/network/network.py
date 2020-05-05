@@ -49,9 +49,9 @@ class Network(object):
 
             if kwargs['H'] is not None:
                 sym = True
-                self.G = BAHsym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], similitude=kwargs['H'])
+                self.G = BAHsym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], similitude=kwargs['H'], density=kwargs['density'])
             elif kwargs['Hmm'] is not None and kwargs['HMM'] is not None:
-                self.G = BAHasym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], h_mM=1-kwargs['Hmm'], h_Mm=1-kwargs['HMM'])
+                self.G = BAHasym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], density=kwargs['density'], h_mM=1-kwargs['Hmm'], h_Mm=1-kwargs['HMM'])
 
             h = get_similitude(self.G)
             b = get_minority_fraction(self.G)

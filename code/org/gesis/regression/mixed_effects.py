@@ -154,12 +154,17 @@ class MixedEffects(object):
                 res = []
 
                 for i, var in enumerate(groups):
+                    if var == 'pseeds':
+                        continue
+
                     tmp = df.loc[var] * 10 ** 10 // 10 ** (10 - 1) / 10 ** 1
                     new_group = group.copy()
+
                     for value in [tmp, round(tmp + 0.1, 1)]:
                         new_group[i] = str(value)
                         try:
-                            res.append(random_effects.loc['Group', '_'.join(new_group)])
+                            reng = random_effects.loc['Group', '_'.join(new_group)]
+                            res.append(reng)
                         except Exception as ex:
                             pass
 
@@ -174,5 +179,7 @@ class MixedEffects(object):
             gv = mdf.cov_re.values[0][0]
         except Exception as ex:
             print('Error GV: {}'.format(ex))
+
+        #print(df.dataset, '(Intercept', fe_params.loc['Intercept'], 'B', df.B, 'density', df.density, ') (H', df.H, 'pseeds', df.pseeds, ') = FE', fe, 'RE', re, 'GV', gv)
 
         return fe + re + gv

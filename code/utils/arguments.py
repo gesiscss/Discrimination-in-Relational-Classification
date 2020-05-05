@@ -27,6 +27,12 @@ def init_batch_create_network():
                         default=None,
                         help='Minority fraction (class balance)')
 
+    parser.add_argument('-density', action='store',
+                        dest='density',
+                        type=float,
+                        default=None,
+                        help='Edge density')
+
     parser.add_argument('-H', action='store',
                         dest='H',
                         type=float,
@@ -84,7 +90,10 @@ def init_batch_create_network():
     print('N .......... = ', results.N)
     print('m .......... = ', results.m)
     print('B .......... = ', results.B)
+    print('density .... = ', results.density)
     print('H .......... = ', results.H)
+    print('Hmm ........ = ', results.Hmm)
+    print('HMM ........ = ', results.HMM)
     print('i .......... = ', results.i)
     print('x .......... = ', results.x)
     print('ignoreInt .. = ', results.ignoreInt)

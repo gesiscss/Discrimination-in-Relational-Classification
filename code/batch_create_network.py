@@ -15,13 +15,13 @@ def run(params):
         printf("*** Loading empirical Network ***")
         emp = Network()
         emp.load(datafn=params.fit, ignoreInt=params.ignoreInt)
-        N = emp.G.number_of_nodes()
+        N = emp.G.number_of_nodes() if params.N is None else params.N
+        density = estimator.get_density(emp.G) if params.density is None else params.density
         m = max(estimator.get_min_degree(emp.G), 2)
         B = round(estimator.get_minority_fraction(emp.G), 2)
         H = None
         Hmm = round(emp.G.graph['Hmm'], 2)
         HMM = round(emp.G.graph['HMM'], 2)
-
         fit = emp.G.graph['name']
     else:
         N = params.N
@@ -30,13 +30,14 @@ def run(params):
         Hmm = params.Hmm
         HMM = params.HMM
         B = params.B
+        density = params.density
         fit = None
 
     ### 2. Create network using model
     print("")
     printf("*** Creating Network ***")
     net = Network(params.kind, fit)
-    net.create_network(N=N, m=m, B=B, H=H, Hmm=Hmm, HMM=HMM, i=params.i, x=params.x)
+    net.create_network(N=N, m=m, B=B, density=density, H=H, Hmm=Hmm, HMM=HMM, i=params.i, x=params.x)
     net.info()
     net.save(params.root)
 

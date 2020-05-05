@@ -78,6 +78,19 @@ def load_csv(fn):
         raise FileNotFoundError("{} does not exist.".format(fn))
     return df
 
+def write_text(content, fn, verbose=True):
+    with open(fn, 'w') as f:
+        f.write(content)
+    if verbose:
+        print('{} saved!'.format(fn))
+
+def load_text(fn, verbose=True):
+    with open(fn, 'r') as f:
+        content = f.read()
+    if verbose:
+        print('{} loaded!'.format(fn))
+    return content
+
 def get_random_datafn(path,kind,N,m,B,H):
     # BAH-N500-m4-B0.5-H1.0-i5-x5-h1.0-k7.9-km7.9-kM7.9.gpickle
     fn = [fn for fn in os.listdir(path)

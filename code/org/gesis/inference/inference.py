@@ -82,7 +82,7 @@ def _load_pickle_to_dataframe(fn, verbose=True):
 
     kind = foldername.split('-')[0] if nvars in [11,13] else 'empirical'
     dataset = foldername.split('-')[1] if nvars == 13 else '-' if nvars == 11 else foldername.split('_')[0]
-    h = float(obj['H']) if 'H' in obj else np.mean([float(obj['Hmm']),float(obj['HMM'])])
+    h = float(obj['H']) if 'H' in obj and obj['H'] is not None else np.mean([float(obj['Hmm']),float(obj['HMM'])])
 
     df = pd.DataFrame({'kind': kind,
                        'dataset':dataset,

@@ -299,8 +299,13 @@ def plot_model_vs_data(df, fn):
         _set_minimal_xticklabels(ax)
 
         dataset = ax.get_title()
-        _tmp = tmp.query("dataset==@dataset")
-        ax.text(s="H={}\nB={}".format(_tmp.H.unique()[0],_tmp.B.unique()[0]),x=1,y=0.8)
+        _tmp = tmp.query(" dataset==@dataset & kind=='empirical' ")
+
+        ### todo: show asymmetric homophily
+        #ax.text(s="H={}\nB={}".format(_tmp.H.unique()[0],_tmp.B.unique()[0]),x=1,y=0.8)
+        ax.text(s="H={} ({}, {})\nB={}".format(_tmp.H.unique()[0],
+                                              _tmp.Hmm.unique()[0],_tmp.HMM.unique()[0],
+                                              _tmp.B.unique()[0]), x=1, y=0.8)
 
         ax.set_title("{}) {}".format(subfigurelabel[i],dataset))
 

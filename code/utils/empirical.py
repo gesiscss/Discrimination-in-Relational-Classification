@@ -83,6 +83,14 @@ def get_summary_datasets(datapath, df_evalues, output=None):
         if output is not None:
             io.write_csv(df_details, fn_summary)
 
+            # to latex:
+            content = df_details.to_latex(index=False, float_format=lambda x: '%.2f' % x)
+            io.write_text(content, fn_summary.replace(".csv", ".tex"))
+
+            # to latex pivot:
+            content = df_details.pivot_table(columns='dataset', aggfunc=np.unique).to_latex(float_format=lambda x: '%.2f' % x)
+            io.write_text(content, fn_summary.replace(".csv", "_pivot.tex"))
+
     return df_details
 
 
