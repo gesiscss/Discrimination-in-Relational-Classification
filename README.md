@@ -12,6 +12,8 @@ Data-driven discrimination in relational classification
 | Description | Launch in Binder |
 | :---: | :---: |
 | Plots in paper | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fplots_paper.ipynb) |
+| Supplementary material | [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/gesiscss/Discrimination-in-Relational-Classification/master?filepath=code%2Fsupplementary_material.ipynb) |
+
 
 
 ## Publications
