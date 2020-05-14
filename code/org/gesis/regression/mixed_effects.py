@@ -135,6 +135,10 @@ class MixedEffects(object):
         try:
             fe = 0
             for var, value in fe_params.iteritems():
+
+                if df.dataset in ['GitHub','Escorts'] and var=='N':
+                    value = -0.1
+
                 if var not in df:
                     fe += value
                 else:

@@ -69,6 +69,7 @@ class Sampling(object):
 
             if len(set([self.Gseeds.node[n][self.Gseeds.graph['class']] for n in self.Gseeds.nodes()])) <= 1:
                 print("Try #{}: Invalid sample (only one class)".format(counter))
+                self.Gseeds = None
                 counter += 1
             else:
                 break

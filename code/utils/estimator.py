@@ -38,6 +38,8 @@ def get_edge_type_counts(graph, fractions=False):
                                      graph.graph['group'][graph.graph['labels'].index(graph.node[edge[1]][graph.graph['class']])]) for edge in graph.edges()])
     if fractions:
         total = float(counts['mm'] + counts['mM'] + counts['MM'] + counts['Mm'])
+        if total == 0:
+            return 0, 0, 0, 0
         return counts['mm']/total, counts['mM']/total, counts['MM']/total, counts['Mm']/total
 
     return counts['mm'], counts['mM'], counts['MM'], counts['Mm']

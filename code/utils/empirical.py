@@ -9,7 +9,7 @@ from joblib import delayed
 from org.gesis.network import homophilic_barabasi_albert_graph_assym
 from utils import estimator
 from utils import io
-
+from org.gesis.network.network import Network
 
 ##########################################################################
 # For all fm and hmm, hMM
@@ -30,17 +30,23 @@ def get_summary_datasets(datapath, df_evalues, output=None):
     if fn_summary is not None and os.path.exists(fn_summary):
         df_details = io.load_csv(fn_summary)
     else:
-        columns = ['dataset', 'N', 'class', 'minority', 'B', 'E', 'density', 'Emm', 'EMM', 'EmM', 'gammam', 'gammaM', 'Hmm', 'HMM']
+        columns = ['dataset', 'N', 'm', 'class', 'minority', 'B', 'E', 'density', 'Emm', 'EMM', 'EmM', 'gammam', 'gammaM', 'Hmm', 'HMM']
         df_details = pd.DataFrame(columns=columns)
 
         files = [os.path.join(datapath, fn) for fn in os.listdir(datapath) if fn.endswith('.gpickle') and not fn.startswith('BAH')]
 
         for fn in files:
-            g = io.load_gpickle(fn)
+
+            dataset = fn.split('/')[-1].replace('.gpickle','')
+            net = Network()
+            net.load(fn, ignoreInt=None if dataset in ['GitHub','Wikipedia','Escorts'] else 0 )
+            g = net.G
+
             dataset = g.graph['name']
+            m = estimator.get_min_degree(g)
             B = estimator.get_minority_fraction(g)
             Emm, EMm, EmM, EMM = estimator.get_edge_type_counts(g)
-            fitm, fitM = get_outdegree_powerlaw_exponents(g)
+            fitm, fitM = get_degree_powerlaw_exponents(g)
 
             gamma_M, xmin_M, xmax_M = fitM.power_law.alpha, fitM.power_law.xmin, fitM.power_law.xmax
             gamma_m, xmin_m, xmax_m = fitm.power_law.alpha, fitm.power_law.xmin, fitm.power_law.xmax
@@ -51,18 +57,19 @@ def get_summary_datasets(datapath, df_evalues, output=None):
             E = g.number_of_edges()
             density = E / ((N*(N-1))/(1. if nx.is_directed(g) else 2.))
 
-            g.graph['N'] = N
-            g.graph['E'] = E
-            g.graph['density'] = density
-            g.graph['B'] = B
-            g.graph['gammam'] = gamma_m
-            g.graph['gammaM'] = gamma_M
-            g.graph['Hmm'] = Hmm
-            g.graph['HMM'] = HMM
-            io.write_gpickle(g, fn)
+            # g.graph['N'] = N
+            # g.graph['E'] = E
+            # g.graph['density'] = density
+            # g.graph['B'] = B
+            # g.graph['gammam'] = gamma_m
+            # g.graph['gammaM'] = gamma_M
+            # g.graph['Hmm'] = Hmm
+            # g.graph['HMM'] = HMM
+            # io.write_gpickle(g, fn)
 
             df_details = df_details.append(pd.DataFrame({'dataset': dataset,
                                                          'N': N,
+                                                         'm': m,
                                                          'class': g.graph['class'],
                                                          'minority': g.graph['labels'][1],
                                                          'B': B,
@@ -88,7 +95,9 @@ def get_summary_datasets(datapath, df_evalues, output=None):
             io.write_text(content, fn_summary.replace(".csv", ".tex"))
 
             # to latex pivot:
-            content = df_details.pivot_table(columns='dataset', aggfunc=np.unique).to_latex(float_format=lambda x: '%.2f' % x)
+            df_pivot = df_details.pivot_table(columns='dataset', aggfunc=np.unique)
+            df_pivot = df_pivot.reindex(columns[1:])
+            content = df_pivot.to_latex(float_format=lambda x: '%.2f' % x)
             io.write_text(content, fn_summary.replace(".csv", "_pivot.tex"))
 
     return df_details
@@ -158,7 +167,7 @@ def fit_power_law(data, discrete=True):
                         verbose=False)
 
 
-def get_outdegree_powerlaw_exponents(g):
+def get_degree_powerlaw_exponents(g):
     x = np.array([d for n, d in g.degree() if g.graph['labels'].index(g.node[n][g.graph['class']]) == 0])
     fitM = fit_power_law(x)
 

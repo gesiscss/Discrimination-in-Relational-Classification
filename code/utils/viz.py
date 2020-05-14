@@ -91,11 +91,14 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
     evaluation = columns['rocauc']
     xaxis = columns['H']
     hue = columns['pseeds']
+    col = columns['B']
+    col_order = sorted(tmp[col].unique(), reverse=True)
+    tmp.loc[:,hue] = tmp.loc[:,hue].apply(lambda r: int(r*100))
 
     fg = sns.catplot(data=tmp,
                      x=xaxis,
                      y=evaluation,
-                     col=columns['B'],
+                     col=col,
                      row=columns['m'],
                      hue=hue,
                      ci='sd',
@@ -105,6 +108,7 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
                      aspect=0.9,
                      palette=RdBu_11.mpl_colors,
                      legend=True,
+                     col_order=col_order
                      )
 
     for aa in np.ndenumerate(fg.axes):
@@ -151,6 +155,7 @@ def plot_rocauc_vs_pseeds_per_H_B_N_m(df, columns, fn=None):
     hue = columns['network_size']
     toplegend = True
     palette = "Paired"
+    #1
     _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
 
 def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
@@ -167,6 +172,7 @@ def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
 
     toplegend = True
     palette = "tab10"
+    #2
     _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=False, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
 
 
@@ -301,7 +307,6 @@ def plot_model_vs_data(df, fn):
         dataset = ax.get_title()
         _tmp = tmp.query(" dataset==@dataset & kind=='empirical' ")
 
-        ### todo: show asymmetric homophily
         #ax.text(s="H={}\nB={}".format(_tmp.H.unique()[0],_tmp.B.unique()[0]),x=1,y=0.8)
         ax.text(s="H={} ({}, {})\nB={}".format(_tmp.H.unique()[0],
                                               _tmp.Hmm.unique()[0],_tmp.HMM.unique()[0],
@@ -374,10 +379,11 @@ def plot_estimation_errors_per_H_B_rocauc(df, columns, metricx, metricy,fn=None)
 
     tmp = df.copy()
     tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+    col_order = sorted(tmp[col].unique(), reverse=True)
 
     _plot_by(tmp, x, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True,
              toplegend=False, yticklabels=True, kind="scatter", logy=False, palette=palette,
-             xlabel=True, xlim=(None, None), ylim=(None, None), col_order=None, shortaxislabels=True,
+             xlabel=True, xlim=(None, None), ylim=(None, None), col_order=col_order, shortaxislabels=True,
              height=1.5, aspect=1.2, grid=True, xlabelpos=(-0.08, -0.2), ylabelpos=(-0.105, 0.05))
     return
 
@@ -446,6 +452,7 @@ def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metric
 
     tmp = df.copy()
     tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+    col_order = sorted(tmp[col].unique(), reverse=True)
 
     _plot_by(tmp, x, y, row=row, col=col, hue=hue,
              kind="scatter", fn=fn,
@@ -460,6 +467,7 @@ def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metric
              shortaxislabels=shortaxislabels,
              grid=grid,
              palette=palette,
+             col_order=col_order,
              **kwargs)
 
 
@@ -481,7 +489,14 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
 
     toplegend = True
     palette = "tab10"
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, yticklabels=True, kind="bar", logy=False, palette=palette)
+
+    tmp = df.copy()
+    col_order = sorted(tmp[col].unique(), reverse=True)
+
+    #3
+    _plot_by_pseeds(tmp, y, row, col, hue, hue_order=hue_order,
+                    fn=fn, ylabel=(True, True),
+                    legend=True, toplegend=toplegend, yticklabels=True, kind="bar", logy=False, palette=palette, col_order=col_order)
 
 
 
@@ -590,8 +605,18 @@ def _plot_scatter(x, y, **kwargs):
     data = kwargs.pop("data")
     ax.scatter(data[x], data[y], **kwargs)
 
-def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False):
-    _plot_by(df, 'pseeds', y, row, col, hue, hue_order, fn, ylabel, legend, toplegend, yticklabels, kind, logy, palette)
+def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False, col_order=None):
+    _plot_by(df, 'pseeds', y, row, col, hue,
+    hue_order,
+    fn,
+    ylabel,
+    legend,
+    toplegend,
+    yticklabels,
+    kind,
+    logy,
+    palette,
+    col_order=col_order)
 
 def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True), legend=True,
              toplegend=False, yticklabels=True, kind="line", logy=False, palette=False,
