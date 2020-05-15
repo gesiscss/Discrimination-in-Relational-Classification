@@ -286,6 +286,8 @@ def plot_model_vs_data(df, fn):
     tmp.loc[:,'pseeds'] = tmp.apply(lambda row: int(row.pseeds*100), axis=1)
     tmp.sort_values(['dataset','pseeds'], ascending=True, inplace=True)
 
+    tmp.kind = tmp.apply(lambda row: 'BA-Homophily' if row.kind == 'BAH' else row.kind ,axis=1)
+
     x = 'pseeds'
     y = 'ROCAUC'
     fg = sns.catplot(data=tmp,
