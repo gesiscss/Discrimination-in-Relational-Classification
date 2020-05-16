@@ -30,7 +30,7 @@ def get_summary_datasets(datapath, df_evalues, output=None):
     if fn_summary is not None and os.path.exists(fn_summary):
         df_details = io.load_csv(fn_summary)
     else:
-        columns = ['dataset', 'N', 'm', 'class', 'minority', 'B', 'E', 'density', 'Emm', 'EMM', 'EmM', 'gammam', 'gammaM', 'Hmm', 'HMM']
+        columns = ['dataset', 'N', 'm', 'class', 'minority', 'B', 'E', 'density', 'Emm', 'EMM', 'EmM', 'gamma', 'gammam', 'gammaM', 'Hmm', 'HMM']
         df_details = pd.DataFrame(columns=columns)
 
         files = [os.path.join(datapath, fn) for fn in os.listdir(datapath) if fn.endswith('.gpickle') and not fn.startswith('BAH')]
@@ -46,8 +46,9 @@ def get_summary_datasets(datapath, df_evalues, output=None):
             m = estimator.get_min_degree(g)
             B = estimator.get_minority_fraction(g)
             Emm, EMm, EmM, EMM = estimator.get_edge_type_counts(g)
-            fitm, fitM = get_degree_powerlaw_exponents(g)
+            fit, fitm, fitM = get_degree_powerlaw_exponents(g)
 
+            gamma, xmin, xmax = fit.power_law.alpha, fit.power_law.xmin, fit.power_law.xmax
             gamma_M, xmin_M, xmax_M = fitM.power_law.alpha, fitM.power_law.xmin, fitM.power_law.xmax
             gamma_m, xmin_m, xmax_m = fitm.power_law.alpha, fitm.power_law.xmin, fitm.power_law.xmax
 
@@ -78,6 +79,7 @@ def get_summary_datasets(datapath, df_evalues, output=None):
                                                          'Emm': Emm,
                                                          'EMM': EMM,
                                                          'EmM': EmM + EMm,
+                                                         'gamma': gamma,
                                                          'gammam': gamma_m,
                                                          'gammaM': gamma_M,
                                                          'Hmm': Hmm,
@@ -161,6 +163,12 @@ def find_homophily_MLE(G, df):
 # Out-Degree Distribution
 ##########################################################################
 
+def get_power_law(fn):
+    g = io.load_gpickle(fn)
+    data = [d for n, d in g.degree()]
+    return fit_power_law(data)
+
+
 def fit_power_law(data, discrete=True):
     return powerlaw.Fit(data,
                         discrete=discrete,
@@ -168,10 +176,13 @@ def fit_power_law(data, discrete=True):
 
 
 def get_degree_powerlaw_exponents(g):
+    x = np.array([d for n, d in g.degree()])
+    fit = fit_power_law(x)
+
     x = np.array([d for n, d in g.degree() if g.graph['labels'].index(g.node[n][g.graph['class']]) == 0])
     fitM = fit_power_law(x)
 
     x = np.array([d for n, d in g.degree() if g.graph['labels'].index(g.node[n][g.graph['class']]) == 1])
     fitm = fit_power_law(x)
 
-    return fitm, fitM
+    return fit, fitm, fitM

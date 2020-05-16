@@ -6,6 +6,8 @@ import seaborn as sns
 import sympy
 from matplotlib import rc
 from palettable.colorbrewer.diverging import RdBu_11
+import os
+from utils import empirical
 
 ############################################################################################################
 # Constants
@@ -13,7 +15,9 @@ from palettable.colorbrewer.diverging import RdBu_11
 
 # Available metrics
 
-METRIC = {'ROCAUC': 'ROCAUC', 'bias': 'Bias',
+METRIC = {'rocauc':'ROCAUC', 'ROCAUC': 'ROCAUC', 'bias': 'Bias',
+
+          'p1':r'$P_{min}$',
 
           # Estimation Error: estimation - observed
           'EEp1': r'$P_{min} - \theta_{min}$',
@@ -32,6 +36,7 @@ METRIC = {'ROCAUC': 'ROCAUC', 'bias': 'Bias',
           # Comparing the estimation errors
           'SEcpDiff': r"$(\theta_{maj|maj} - P_{maj|maj})^2 - (\theta_{min|min} - P_{min|min})^2$",
           'SEcpSum': r"$(\theta_{maj|maj} - P_{maj|maj})^2 + (\theta_{min|min} - P_{min|min})^2$",
+          'SE': r"$SE_{min} + SE_{min|min} + SE_{maj|maj} $",
           }
 
 
@@ -60,6 +65,40 @@ def unlatexfyme(text):
 ############################################################################################################
 # Latex tables
 ############################################################################################################
+
+
+
+def plot_empirical_degree_distributions(root, fn=None):
+    files = [os.path.join(root,fg) for fg in os.listdir(root) if not fg.startswith('BAH') and not fg.startswith('USF')]
+    files = sorted(files)
+    ndatasets = len(files)
+
+    plt.close()
+    fig,axes = plt.subplots(1, ndatasets, figsize=(3*ndatasets, 2), sharex=False, sharey=False)
+    yvalues = [0.0005, 0.00007, 0.0000002, 0.0001, 0.002]
+
+    for c, fg in enumerate(files):
+        dataset = fg.split('/')[-1].replace('.gpickle','')
+        pl = empirical.get_power_law(fg)
+        pl.plot_pdf(ax=axes[c], linewidth=3, linestyle='-', label='data')
+        pl.power_law.plot_pdf(ax=axes[c], linestyle='--', label='power-law')
+        s = '$k_{min}=$' + '{:.0f}; '.format(pl.power_law.xmin) + '$\gamma =$' + '{:.2f}'.format(pl.power_law.alpha)
+        axes[c].text(s=s, x=pl.power_law.xmin, y=yvalues[c])
+        axes[c].set_title(dataset)
+
+    plt.legend(loc="upper right")
+
+    ### space between subplots
+    plt.subplots_adjust(hspace=0.1, wspace=0.25)
+
+    ### Save fig
+    if fn is not None:
+        fig.savefig(fn, bbox_inches='tight')
+        print('{} saved!'.format(fn))
+
+    ###
+    plt.show()
+    plt.close()
 
 
 
@@ -140,6 +179,11 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
         for ax in fg.axes.flatten():
             ax.set_ylabel('')
         fg.axes[1,0].text(s=evaluation, x=-5.5, y=1.15, rotation=90, va='center')
+
+    if hue == 'pseeds':
+        new_title = 'pseeds \%'
+        fg._legend.set_title(new_title)
+
 
     plt.subplots_adjust(hspace=0.05, wspace=0.05)
 
@@ -406,10 +450,14 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
         # Plotting all sample techniques (one plot for each)
         for sampling in _sort_sampling_methods(df.sampling.unique()):
             ylabel = (sampling == 'nodes', 'partial' in sampling)
-            legend = 'partial' in sampling
+            legend = 'partial' in sampling and metricx in ['bias','SEcpSum']
+            #print('partial' in sampling and metricx == 'bias', 'partial' in sampling , metricx == 'bias')
             yticklabels = sampling == 'nodes'
 
             print(sampling)
+            xlabelpos = (-0.1, -0.3) if metricx == 'SE' else (-0.9, -0.45) if metricx=='bias' else (-0.35, -0.11)
+            ylabelpos = (-0.25, 0.21) if metricx == 'SE' else (-0.65, 0.32) if metricx=='bias' else (-0.25, 0.0)
+
             _plot_estimation_errors_per_H_B_rocauc_sampling(
                 tmp.query('sampling==@sampling'), columns,
                 metricx=metricx, metricy=metricy,
@@ -417,12 +465,12 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
                 legend=legend,
                 yticklabels=yticklabels,
                 shortaxislabels=True,
-                xlim=(-0.03, tmp[columns[metricx]].max()+0.03),
-                ylim=(-0.018, tmp[columns[metricy]].max()+0.03),
+                xlim=(-0.1,1.1) if metricx=='bias' else (-0.03, tmp[columns[metricx]].max()+0.03),
+                ylim=(0.1,1.1) if metricy=='rocauc' else (-0.5,0.5) if metricy=='EEp1' else (-0.018, tmp[columns[metricy]].max()+0.03),
                 height=1.5, aspect=1.1,
-                grid=True,
-                fn=fn.replace('<sampling>',sampling).replace('\_',''),
-                xlabelpos=(-0.35, -0.11), ylabelpos=(-0.25, 0.0))
+                grid=False,
+                fn=fn if fn is None else fn.replace('<sampling>',sampling).replace('\_',''),
+                xlabelpos=xlabelpos, ylabelpos=ylabelpos)
     else:
         # Plotting only 1 sampling technique (full plot)
         # available sampling methods: nodes, neighbors, nedges, degree, partial
@@ -434,10 +482,10 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
             yticklabels=True,
             shortaxislabels=True,
             xlim=(-0.03, tmp[columns[metricx]].max() + 0.03),
-            ylim=(-0.018, tmp[columns[metricy]].max() + 0.03),
+            ylim=(0.1,1.1) if metricy=='rocauc' else (-0.018, tmp[columns[metricy]].max() + 0.03),
             height=1.5, aspect=1.2,
             grid=True,
-            fn=fn.replace('<sampling>',sampling),
+            fn=fn if fn is None else fn.replace('<sampling>',sampling),
             xlabelpos=(-0.3, -0.11), ylabelpos=(-0.2, 0.0))
 
 def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy,
@@ -456,7 +504,10 @@ def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metric
     tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
     col_order = sorted(tmp[col].unique(), reverse=True)
 
-    _plot_by(tmp, x, y, row=row, col=col, hue=hue,
+    if x == 'bias':
+        tmp.SE = tmp.SE.round(1)
+
+    _plot_by(tmp, x, y, row=row, col=col, hue="SE" if x == 'bias' else hue if x == 'SEcpSum' else None,
              kind="scatter", fn=fn,
              ylabel=ylabel,
              legend=legend, toplegend=False,
@@ -470,6 +521,7 @@ def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metric
              grid=grid,
              palette=palette,
              col_order=col_order,
+             baselines=True,
              **kwargs)
 
 
@@ -535,6 +587,13 @@ def _sort_sampling_methods(sampling_list):
     return order
 
 def _get_short_axis_label(label):
+    if label.lower() in ['rocauc','bias']:
+        return label
+
+    if label == "SE":
+        s = "\sum SE" #"SE_{min} + SE_{min|min} + SE_{maj|maj}"
+        return r'${}$'.format(s)
+
     if label not in ['SEcpDiff', 'SEcpSum']:
         if 'cp' in label:
             s = label.replace('cp', '_{').replace('11', 'min|min}').replace('00', 'maj|maj}')
@@ -623,7 +682,7 @@ def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True
 def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True), legend=True,
              toplegend=False, yticklabels=True, kind="line", logy=False, palette=False,
              xlabel=True, xlim=(None,None), ylim=(None,None), col_order=None, shortaxislabels=False,
-             grid=False, height=1.2, aspect=1.2, **kwargs):
+             grid=False, height=1.2, aspect=1.2, baselines=True, **kwargs):
 
     plt.close()
     baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'SE': 0, 'EE':0}
@@ -645,16 +704,20 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     elif kind == 'line':
         fg = fg.map_dataframe(_plot_lines, x, y, marker='o', lw=1.0, alpha=1.0)
     elif kind == 'scatter':
-        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=1.0, vmin=0, vmax=1)
+        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.5 if x in ['SE','bias'] else 1.0, vmin=0, vmax=1)
 
     x = unlatexfyme(x)
     y = unlatexfyme(y)
 
     for ax in fg.axes.flatten():
-        if 'SE' in x or 'EE' in x:
-            ax.axvline(baseline[x[:2]], lw=0.5, ls='--', c='red')
-        if 'SE' in y or 'EE' in y:
-            ax.axhline(baseline[x[:2]], lw=0.5, ls='--', c='red')
+
+        if baselines:
+            if 'SE' in x or 'EE' in x:
+                ax.axvline(baseline[x[:2]], lw=1.0, ls='--', c='pink')
+            if 'SE' in y or 'EE' in y:
+                ax.axhline(baseline[x[:2]], lw=1.0, ls='--', c='pink')
+            if 'bias' in x:
+                ax.axvline(baseline[x], lw=1.0, ls='--', c='pink')
 
     if shortaxislabels:
         x = _get_short_axis_label(x)
@@ -663,6 +726,9 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     if legend:
         if not toplegend:
             fg.add_legend()
+            if hue=='SE':
+                new_title = r'$\sum SE$'
+                fg._legend.set_title(new_title)
         else:
             fg.axes[0, 0].legend(loc='lower left',
                                  bbox_to_anchor=(-0.08, 1.3, 0.1, 1),  # -0.25
@@ -673,10 +739,15 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
                                  ncol=df[hue].nunique())
 
     for ax in fg.axes.flatten():
-        try:
-            ax.axhline(baseline[y], lw=1, ls='-' if y != 'bias' else '--', c='red' if y!='bias' else 'grey')
-        except:
-            pass
+
+        if baselines:
+            try:
+                ax.axhline(baseline[y], lw=1.0,
+                           ls='-' if y not in ['bias','ROCAUC'] else '--',
+                           c='pink' if y not in ['bias'] else 'grey')
+            except Exception as ex:
+                #print(ex)
+                pass
 
         ax.set_xlabel('')
         ax.set_ylabel('')
@@ -699,8 +770,13 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     try:
         if xlabel:
             if x == 'bias':
-                print('uno')
-                fg.axes[-1,int(tmp[col].nunique()/2)].set_xlabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
+                s = r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$"
+                if col is None:
+                    fg.ax.set_xlabel(s=s,fontsize=13)
+                else:
+                    xx, yy = kwargs['xlabelpos']
+                    c = int(tmp[col].nunique()/2)
+                    fg.axes[-1, c].text(s=s, x=xx, y=yy, fontsize=13)
             else:
 
                 s = x if x not in METRIC else METRIC[x]
