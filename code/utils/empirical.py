@@ -163,14 +163,20 @@ def find_homophily_MLE(G, df):
 # Out-Degree Distribution
 ##########################################################################
 
-def get_power_law(fn):
+def get_power_law(fn, bestk=True):
     g = io.load_gpickle(fn)
     data = [d for n, d in g.degree()]
-    return fit_power_law(data)
+    return fit_power_law(data, bestk=bestk)
 
 
-def fit_power_law(data, discrete=True):
+def fit_power_law(data, discrete=True, bestk=True):
+    if bestk:
+        return powerlaw.Fit(data,
+                            discrete=discrete,
+                            verbose=False)
     return powerlaw.Fit(data,
+                        xmin=min(data),
+                        xmax=max(data),
                         discrete=discrete,
                         verbose=False)
 

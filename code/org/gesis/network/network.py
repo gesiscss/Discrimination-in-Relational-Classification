@@ -25,6 +25,15 @@ from utils.io import write_gpickle
 BARABASI_ALBERT_HOMOPHILY = "BAH"
 
 ############################################
+# Functions
+############################################
+def _validate_params(**kwargs):
+    for param in ['density','H','Hmm','HMM']:
+        if param not in kwargs:
+            kwargs[param] = None
+    return kwargs
+
+############################################
 # Class
 ############################################
 class Network(object):
@@ -43,6 +52,7 @@ class Network(object):
         Creates a new instance of the respective network type
         - kwargs: network properties
         '''
+        kwargs = _validate_params(**kwargs)
         sym = False
 
         if self.kind == BARABASI_ALBERT_HOMOPHILY:
@@ -105,9 +115,9 @@ class Network(object):
         :return:
         '''
         self.G = load_gpickle(datafn)
-        self._validate(datafn, ignoreInt)
+        self._validate_network(datafn, ignoreInt)
 
-    def _validate(self, datafn, ignoreInt=None):
+    def _validate_network(self, datafn, ignoreInt=None):
 
         # 1. ignoreInt
         if ignoreInt is not None:

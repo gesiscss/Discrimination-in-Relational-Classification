@@ -68,7 +68,7 @@ def unlatexfyme(text):
 
 
 
-def plot_empirical_degree_distributions(root, fn=None):
+def plot_empirical_degree_distributions(root, bestk=True, fn=None):
     files = [os.path.join(root,fg) for fg in os.listdir(root) if not fg.startswith('BAH') and not fg.startswith('USF')]
     files = sorted(files)
     ndatasets = len(files)
@@ -79,7 +79,7 @@ def plot_empirical_degree_distributions(root, fn=None):
 
     for c, fg in enumerate(files):
         dataset = fg.split('/')[-1].replace('.gpickle','')
-        pl = empirical.get_power_law(fg)
+        pl = empirical.get_power_law(fg, bestk)
         pl.plot_pdf(ax=axes[c], linewidth=3, linestyle='-', label='data')
         pl.power_law.plot_pdf(ax=axes[c], linestyle='--', label='power-law')
         s = '$k_{min}=$' + '{:.0f}; '.format(pl.power_law.xmin) + '$\gamma =$' + '{:.2f}'.format(pl.power_law.alpha)

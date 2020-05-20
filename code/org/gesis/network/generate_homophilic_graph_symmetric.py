@@ -103,7 +103,7 @@ def homophilic_barabasi_albert_graph(N, m , minority_fraction, similitude, densi
         target_list.append(source)
         source += 1
 
-    ### todo: here check density keeping min E = (N*m) (add more egdes?)
+    ### Fulfilling density while keeping min E = (N*m)
     if MORE_E > 0:
         counter = 0
         while counter < MORE_E:
