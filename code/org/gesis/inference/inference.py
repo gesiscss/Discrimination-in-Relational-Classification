@@ -34,11 +34,11 @@ RELAXATION = "relaxation"
 
 ### Inference
 
-def is_inference_done(root, datafn, sampling, pseeds, postfix):
-    output = os.path.join(root, "{}_{}".format(os.path.basename(datafn).replace(".gpickle", ""), sampling))
-    f1 = get_graph_filename(output, pseeds, postfix)
-    f2 = get_samplegraph_filename(output, pseeds, postfix)
-    f3 = get_evaluation_filename(output, pseeds, postfix)
+def is_inference_done(root, datafn, sampling, pseeds, epoch, sn=None):
+    output = os.path.join(root, "{}_{}{}".format(os.path.basename(datafn).replace(".gpickle", ""), sampling, '_sn{}'.format(sn) if sn is not None else '' ))
+    f1 = get_graph_filename(output, pseeds, epoch)
+    f2 = get_samplegraph_filename(output, pseeds, epoch)
+    f3 = get_evaluation_filename(output, pseeds, epoch)
 
     return os.path.exists(f1) and os.path.exists(f2) and os.path.exists(f3)
 

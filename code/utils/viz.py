@@ -195,12 +195,16 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
 def plot_rocauc_vs_pseeds_per_H_B_N_m(df, columns, fn=None):
     y = columns['rocauc']
     row = columns['B']
+    row_order = sorted(df[row].unique(), reverse=True)
     col = columns['H']
     hue = columns['network_size']
     toplegend = True
     palette = "Paired"
+
     #1
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True), legend=True, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True),
+                    legend=True, toplegend=toplegend, yticklabels=True, kind="line",
+                    logy=False, palette=palette, row_order=row_order, height=1.2, aspect=1)
 
 def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
     y = columns['rocauc']
@@ -217,7 +221,8 @@ def plot_rocauc_vs_pseeds_per_H_B_sampling(df, columns, fn=None):
     toplegend = True
     palette = "tab10"
     #2
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False), legend=False, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
+    _plot_by_pseeds(df, y, row, col, hue, hue_order=hue_order, fn=fn, ylabel=(True, False),
+                    legend=False, toplegend=toplegend, yticklabels=True, kind="line", logy=False, palette=palette)
 
 
 ############################################################################################################
@@ -550,7 +555,8 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     #3
     _plot_by_pseeds(tmp, y, row, col, hue, hue_order=hue_order,
                     fn=fn, ylabel=(True, True),
-                    legend=True, toplegend=toplegend, yticklabels=True, kind="bar", logy=False, palette=palette, col_order=col_order)
+                    legend=True, toplegend=toplegend, yticklabels=True, kind="bar",
+                    logy=False, palette=palette, col_order=col_order)
 
 
 
@@ -666,23 +672,27 @@ def _plot_scatter(x, y, **kwargs):
     data = kwargs.pop("data")
     ax.scatter(data[x], data[y], **kwargs)
 
-def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False, col_order=None):
+def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False, col_order=None, row_order=None, height=1.2, aspect=1.2):
     _plot_by(df, 'pseeds', y, row, col, hue,
-    hue_order,
-    fn,
-    ylabel,
-    legend,
-    toplegend,
-    yticklabels,
-    kind,
-    logy,
-    palette,
-    col_order=col_order)
+            hue_order,
+            fn,
+            ylabel,
+            legend,
+            toplegend,
+            yticklabels,
+            kind,
+            logy,
+            palette,
+            col_order=col_order,
+            row_order=row_order,
+            height=height,
+            aspect=aspect
+     )
 
 def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True), legend=True,
              toplegend=False, yticklabels=True, kind="line", logy=False, palette=False,
              xlabel=True, xlim=(None,None), ylim=(None,None), col_order=None, shortaxislabels=False,
-             grid=False, height=1.2, aspect=1.2, baselines=True, **kwargs):
+             grid=False, height=1.2, aspect=1.2, baselines=True, row_order=None, **kwargs):
 
     plt.close()
     baseline = {'ROCAUC': 0.5, 'bias': 0.5, 'SE': 0, 'EE':0}
@@ -693,6 +703,7 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     fg = sns.FacetGrid(data=tmp, col=col, row=row, hue=hue,
                        hue_order=hue_order,
                        col_order=col_order,
+                       row_order=row_order,
                        margin_titles=True,
                        height=height if tmp[col].nunique() > 1 else 2,
                        aspect=aspect if tmp[col].nunique() > 1 else 0.75,
