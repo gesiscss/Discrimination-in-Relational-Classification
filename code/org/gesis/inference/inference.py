@@ -75,13 +75,14 @@ def _load_pickle_to_dataframe(fn, verbose=True):
 
     # BAH-N2000-m20-B0.3-H0.9-i3-x5-h0.9-k39.6-km36.5-kM40.9_nodes 11
     # Caltech36_nodes 1
-    # BAH-Caltech36-N701-m2-B0.33-Hmm0.63-HMM0.44-i1-x5-h0.5-k4.0-km5.0-kM3.5_nodes 13
+    # BAH-Caltech36-N179-m2-B0.33-H0.54-i2-x5-h0.6-k11.2-km11.1-kM11.3_nodes 12 (symm)
+    # BAH-Caltech36-N701-m2-B0.33-Hmm0.63-HMM0.44-i1-x5-h0.5-k4.0-km5.0-kM3.5_nodes 13 (asymm)
 
     foldername = fn.split("/")[-2]
     nvars = len(foldername.split("-"))
 
-    kind = foldername.split('-')[0] if nvars in [11,13] else 'empirical'
-    dataset = foldername.split('-')[1] if nvars == 13 else '-' if nvars == 11 else foldername.split('_')[0]
+    kind = foldername.split('-')[0] if nvars in [11,12,13] else 'empirical'
+    dataset = foldername.split('-')[1] if nvars in [12,13] else '-' if nvars == 11 else foldername.split('_')[0]
     h = float(obj['H']) if 'H' in obj and obj['H'] is not None else np.mean([float(obj['Hmm']),float(obj['HMM'])])
 
     df = pd.DataFrame({'kind': kind,

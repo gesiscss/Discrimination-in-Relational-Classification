@@ -1,12 +1,15 @@
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+import os
+import math
+import sympy
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import sympy
+import matplotlib as mpl
 from matplotlib import rc
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from palettable.colorbrewer.diverging import RdBu_11
-import os
+
 from utils import empirical
 
 ############################################################################################################
@@ -15,10 +18,14 @@ from utils import empirical
 
 # Available metrics
 
-METRIC = {'rocauc':'ROCAUC', 'ROCAUC': 'ROCAUC', 'bias': 'Bias',
-
+METRIC = {'rocauc':'ROCAUC', 'ROCAUC': 'ROCAUC', 'pseeds':'pseeds \%',
+          
+          'bias':r"${bias}=\frac{TPR_{min}}{TPR_{min}+TPR_{maj}}$",
+          
+          # priors
           'p1':r'$P_{min}$',
-
+          'p0':r'$P_{maj}$',
+    
           # Estimation Error: estimation - observed
           'EEp1': r'$P_{min} - \theta_{min}$',
           'EEp0': r'$P_{maj} - \theta_{maj}$',
@@ -29,14 +36,24 @@ METRIC = {'rocauc':'ROCAUC', 'ROCAUC': 'ROCAUC', 'bias': 'Bias',
 
           # Squared Error: squared estimation error (estimation - observed)^2
           'SEp1': r'$(P_{min} - \theta_{min})^2$',
+          'SEp1-s': r'$SE_{min}$',
+          
           'SEp0': r'$(P_{maj} - \theta_{maj})^2$',
+          
           'SEcp11': r'$(P_{min|min} - \theta_{min|min})^2$',
+          'SEcp11-s': r'$SE_{min|min}$',
+          
           'SEcp00': r'$(P_{maj|maj} - \theta_{maj|maj})^2$',
-
+          'SEcp00-s': r'$SE_{maj|maj}$',
+          
           # Comparing the estimation errors
           'SEcpDiff': r"$(\theta_{maj|maj} - P_{maj|maj})^2 - (\theta_{min|min} - P_{min|min})^2$",
+          
           'SEcpSum': r"$(\theta_{maj|maj} - P_{maj|maj})^2 + (\theta_{min|min} - P_{min|min})^2$",
-          'SE': r"$SE_{min} + SE_{min|min} + SE_{maj|maj} $",
+          'SEcpSum-s': r"$SE_{maj|maj} + SE_{min|min} $",
+          
+          'SE': r"$SE_{min} + SE_{maj|maj} + SE_{min|min} $",
+          'SE-s': r"$\sum SE$"
           }
 
 
@@ -69,21 +86,31 @@ def unlatexfyme(text):
 
 
 def plot_empirical_degree_distributions(root, bestk=True, fn=None):
-    files = [os.path.join(root,fg) for fg in os.listdir(root) if not fg.startswith('BAH') and not fg.startswith('USF')]
-    files = sorted(files)
-    ndatasets = len(files)
-
+    files = [os.path.join(root,fg) for fg in os.listdir(root) 
+             if not fg.startswith('BAH') and 
+             not fg.startswith('USF') and
+             fg != 'synthetic_evalues.csv']
+    
+    sorted_files = []
+    for d in ['escort','usf','swarth','caltech','wiki','github']:
+        tmp = [fn for fn in files if d in fn.lower()]
+        if len(tmp) > 0 :
+            sorted_files.append(tmp[0])
+            
+    ndatasets = len(sorted_files)
+    
     plt.close()
     fig,axes = plt.subplots(1, ndatasets, figsize=(3*ndatasets, 2), sharex=False, sharey=False)
-    yvalues = [0.0005, 0.00007, 0.0000002, 0.0001, 0.002]
+    #yvalues = [0.0001, 0.0004, 0.0001, 0.0006, 0.002, 0.0000003] # with USF
+    yvalues = [0.0001, 0.0001, 0.0006, 0.002, 0.0000003]
 
-    for c, fg in enumerate(files):
+    for c, fg in enumerate(sorted_files):
         dataset = fg.split('/')[-1].replace('.gpickle','')
         pl = empirical.get_power_law(fg, bestk)
         pl.plot_pdf(ax=axes[c], linewidth=3, linestyle='-', label='data')
         pl.power_law.plot_pdf(ax=axes[c], linestyle='--', label='power-law')
         s = '$k_{min}=$' + '{:.0f}; '.format(pl.power_law.xmin) + '$\gamma =$' + '{:.2f}'.format(pl.power_law.alpha)
-        axes[c].text(s=s, x=pl.power_law.xmin, y=yvalues[c])
+        axes[c].text(s=s, x=pl.power_law.xmin, y=yvalues[c], va='top', ha='left')
         axes[c].set_title(dataset)
 
     plt.legend(loc="upper right")
@@ -133,12 +160,15 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
     col = columns['B']
     col_order = sorted(tmp[col].unique(), reverse=True)
     tmp.loc[:,hue] = tmp.loc[:,hue].apply(lambda r: int(r*100))
-
+    tmp.loc[:,'density'] = tmp.apply(lambda r: round(r['density'],3 if r['m'] == 4 else 2), axis=1)
+    tmp.rename(columns={'density':'d'}, inplace=True)
+    
+    
     fg = sns.catplot(data=tmp,
                      x=xaxis,
                      y=evaluation,
                      col=col,
-                     row=columns['m'],
+                     row='d', #'m'
                      hue=hue,
                      ci='sd',
                      kind='point',
@@ -155,7 +185,12 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
 
         if coord != (1, 1):
             aa[1].set_xlabel("")
-
+        #else:
+        #    aa[1].set_xlabel("$h$")
+        ### @todo: uncomment this h and fm but first change througout all the paper.
+        #if coord[0] == 0:
+        #    aa[1].set_title(aa[1].get_title().replace("B",'$f_m$'))
+            
         if coord[0] == 1:
             _set_minimal_xticklabels(aa[1])
             # labels = aa[1].get_xticklabels()  # get x labels
@@ -189,6 +224,8 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
 
     if fn is not None:
         plt.savefig(fn, bbox_inches='tight')
+        print("{} saved!".format(fn))
+        
     plt.show()
     plt.close()
 
@@ -202,7 +239,16 @@ def plot_rocauc_vs_pseeds_per_H_B_N_m(df, columns, fn=None):
     palette = "Paired"
 
     #1
-    _plot_by_pseeds(df, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True),
+    tmp = df.copy()
+    
+    #2 changing network_size from N,m to N,d
+    tmp.loc[:,hue] = tmp.apply(lambda row: 'N{}, d{}'.format(row[columns['N']],
+                                                             round(row[columns['density']],3 
+                                                                   if row[columns['density']] < 0.01 else 2)), axis=1)
+    
+    #3
+    tmp.sort_values(['m','N'], inplace=True)
+    _plot_by_pseeds(tmp, y, row, col, hue, hue_order=None, fn=fn, ylabel=(True, True),
                     legend=True, toplegend=toplegend, yticklabels=True, kind="line",
                     logy=False, palette=palette, row_order=row_order, height=1.2, aspect=1)
 
@@ -336,21 +382,56 @@ def plot_model_vs_data(df, fn):
     tmp.sort_values(['dataset','pseeds'], ascending=True, inplace=True)
 
     tmp.kind = tmp.apply(lambda row: 'BA-Homophily' if row.kind == 'BAH' else row.kind ,axis=1)
-
+    tmp.sort_values(["H","B"], inplace=True)
+    
     x = 'pseeds'
     y = 'ROCAUC'
+    col = 'dataset'
+    hue = 'kind'
+    #colors = sns.color_palette("Paired")
+    #subfigurelabel = ['a','b','c','d','e','f']
+    
+#     fig,axes = plt.subplots(1,tmp[col].nunique(),figsize=(2.2*tmp[col].nunique(),2.0))
+#     for c,dataset in enumerate(tmp[col].unique()):
+#         for h,kind in enumerate(tmp[hue].unique()):
+            
+#             if kind == 'empirical':
+#                 _data = tmp.query("dataset==@dataset & kind==@kind").copy()
+#                 _err = _data.groupby(['dataset','kind','pseeds']).std().reset_index().sort_values('pseeds')
+#                 _data = _data.groupby(['dataset','kind','pseeds']).mean().reset_index().sort_values('pseeds')
+#                 axes[c].errorbar(_data[x].values, _data[y].values, yerr=_err[y].values,
+#                                  color=colors[h], 
+#                                  alpha=1.0,
+#                                  zorder=100,
+#                                  label=kind)
+#             else:
+#                 for i in tmp['i'].unique():
+#                     for epoch in tmp['epoch'].unique():
+#                         _data = tmp.query("dataset==@dataset & kind==@kind & i==@i & epoch==@epoch").copy()
+#                         axes[c].plot(_data[x].values, _data[y].values,
+#                                      color=colors[h], 
+#                                      alpha=0.5,
+#                                      zorder=1, 
+#                                      label=kind)
+            
+#         axes[c].set_title("{}".format(dataset))
+    
     fg = sns.catplot(data=tmp,
                      kind='point',
+                     estimator=np.mean,
+                     n_boot=1000,
                      height=2.0,
                      aspect=0.85,
                      palette="Paired",
-                     col='dataset', x=x, y=y,
-                     hue='kind')
+                     col=col, x=x, y=y,
+                     hue=hue)
 
     fg.set_titles("{col_name}")
     subfigurelabel = ['a','b','c','d','e','f']
 
     for i,ax in enumerate(fg.axes.flatten()):
+    #for i in np.arange(tmp[col].nunique()):
+        #ax = axes[i]
         ax.axhline(0.5, ls="--", c='grey', lw=1.0)
         ax.set_ylim(0.4, 1.05)
         _set_minimal_xticklabels(ax)
@@ -358,15 +439,23 @@ def plot_model_vs_data(df, fn):
         dataset = ax.get_title()
         _tmp = tmp.query(" dataset==@dataset & kind=='empirical' ")
 
-        #ax.text(s="H={}\nB={}".format(_tmp.H.unique()[0],_tmp.B.unique()[0]),x=1,y=0.8)
-        ax.text(s="H={} ({}, {})\nB={}".format(_tmp.H.unique()[0],
-                                              _tmp.Hmm.unique()[0],_tmp.HMM.unique()[0],
-                                              _tmp.B.unique()[0]), x=1, y=0.8)
+        # symmetric homophily
+        ax.text(s="H={}\nB={}".format(_tmp.H.unique()[0],_tmp.B.unique()[0]),x=1,y=0.8)
+        
+        # asymmetric hompohily
+#         ax.text(s="H={} ({}, {})\nB={}".format(_tmp.H.unique()[0],
+#                                                 _tmp.Hmm.unique()[0],_tmp.HMM.unique()[0],
+#                                                 _tmp.B.unique()[0]), x=1, y=0.8)
+        
+        ####@todo: uncomment the following but before change accorddingly in paper
+        #ax.text(s="$h={}$\n$f_m={}$".format(_tmp.H.unique()[0],
+        #                                    _tmp.B.unique()[0]), x=1 if i!=2 else 0., y=0.8 if i!=2 else 0.8)
 
         ax.set_title("{}) {}".format(subfigurelabel[i],dataset))
 
         if i == int(fg.axes.shape[1]/2.):
-            ax.set_xlabel('pseeds')
+        #if i == int(tmp[col].nunique()/2.):
+            ax.set_xlabel('pseeds \%')
         else:
             ax.set_xlabel('')
 
@@ -374,6 +463,7 @@ def plot_model_vs_data(df, fn):
 
     if fn is not None:
         fg.savefig(fn, bbox_inches='tight')
+        #plt.savefig(fn, bbox_inches='tight')
         print('{} saved!'.format(fn))
 
     plt.show()
@@ -444,7 +534,10 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
     validate_metric(metricy)
 
     tmp = df.copy()
-
+    
+    hue = columns["SE"] if metricx == 'bias' else columns['rocauc'] if metricx == 'SEcpSum' else None
+    vmin, vmax = tmp[hue].min(), tmp[hue].max()
+    
     if sampling in [None, 'all', 'ALL', 'All']:
         H = 0.5  # not included
         B = 0.3  # not included
@@ -456,13 +549,18 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
         for sampling in _sort_sampling_methods(df.sampling.unique()):
             ylabel = (sampling == 'nodes', 'partial' in sampling)
             legend = 'partial' in sampling and metricx in ['bias','SEcpSum']
-            #print('partial' in sampling and metricx == 'bias', 'partial' in sampling , metricx == 'bias')
+            xlabelpos = (-0.1, -0.3) if metricx == 'SE' else (-0.98, -0.45) if metricx=='bias' else (-0.35, -0.11)
+            ylabelpos = (-0.25, 0.21) if metricx == 'SE' else (-0.65, 0.32) if metricx=='bias' else (-0.25, 0.0)
             yticklabels = sampling == 'nodes'
+            
+            # for CNA2020 applied network science
+            ylabel = (sampling in ['nodes','degree'], 'partial' in sampling or 'nedges' in sampling)
+            #legend = ('partial' in sampling or 'nedges' in sampling) and metricx in ['bias','SEcpSum']
+            legend = True and metricx in ['bias','SEcpSum']
+            yticklabels = sampling in ['nodes','degree']
+            
 
             print(sampling)
-            xlabelpos = (-0.1, -0.3) if metricx == 'SE' else (-0.9, -0.45) if metricx=='bias' else (-0.35, -0.11)
-            ylabelpos = (-0.25, 0.21) if metricx == 'SE' else (-0.65, 0.32) if metricx=='bias' else (-0.25, 0.0)
-
             _plot_estimation_errors_per_H_B_rocauc_sampling(
                 tmp.query('sampling==@sampling'), columns,
                 metricx=metricx, metricy=metricy,
@@ -475,7 +573,9 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
                 height=1.5, aspect=1.1,
                 grid=False,
                 fn=fn if fn is None else fn.replace('<sampling>',sampling).replace('\_',''),
-                xlabelpos=xlabelpos, ylabelpos=ylabelpos)
+                xlabelpos=xlabelpos, ylabelpos=ylabelpos,
+                vmin=vmin, vmax=vmax
+            )
     else:
         # Plotting only 1 sampling technique (full plot)
         # available sampling methods: nodes, neighbors, nedges, degree, partial
@@ -493,6 +593,12 @@ def plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy
             fn=fn if fn is None else fn.replace('<sampling>',sampling),
             xlabelpos=(-0.3, -0.11), ylabelpos=(-0.2, 0.0))
 
+#def _round_nearest(x, a):
+#    return round(round(x / a) * a, -int(math.floor(math.log10(a))))
+
+def _round_nearest(x,a):
+    return round(round(x/a)*a ,2)
+
 def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metricy,
                                                     ylabel=(True,True), legend=True, yticklabels=True,
                                                     shortaxislabels=True,xlim=(None,None),ylim=(None,None),
@@ -502,17 +608,24 @@ def _plot_estimation_errors_per_H_B_rocauc_sampling(df, columns, metricx, metric
     y = columns[metricy]
     row = columns['H']
     col = columns['B']
-    hue = columns['rocauc']
-    palette = "BrBG"
+    hue = columns["SE"] if x == 'bias' else columns['rocauc'] if x == 'SEcpSum' else None
+    palette = "BrBG" if hue == columns['rocauc'] else 'RdYlGn_r' if hue == columns["SE"] else None
 
     tmp = df.copy()
-    tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
     col_order = sorted(tmp[col].unique(), reverse=True)
 
-    if x == 'bias':
-        tmp.SE = tmp.SE.round(1)
+    if hue is not None:
+        if hue.lower() == 'se':
+            tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 2), axis=1)   
+        elif hue.lower() == 'rocauc':
+            tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+        
+    #tmp.loc[:, hue] = tmp.apply(lambda row: round(row[hue], 1), axis=1)
+    #tmp.loc[:, hue] = tmp.apply(lambda row: _round_nearest(row[hue], 0.05), axis=1)
+    #if x == 'bias':
+    #    tmp.SE = tmp.SE.round(1)
 
-    _plot_by(tmp, x, y, row=row, col=col, hue="SE" if x == 'bias' else hue if x == 'SEcpSum' else None,
+    _plot_by(tmp, x, y, row=row, col=col, hue=hue,
              kind="scatter", fn=fn,
              ylabel=ylabel,
              legend=legend, toplegend=False,
@@ -539,6 +652,33 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
     row = columns['H']
     col = columns['B']
     hue = columns['sampling']
+    hue_order = []
+    
+    tmp = df.copy()
+    tmp.loc[:,hue] = tmp.apply(lambda row:'edges' if row[hue]=='nedges' else row[hue], axis=1)
+    hue_list = tmp[hue].unique()
+    
+    for ho in ['nodes', 'neighbors', 'edges', 'degree', 'partial\_crawls', 'partial_crawls']:
+        if ho in hue_list:
+            hue_order.append(ho)
+    
+    toplegend = True
+    palette = "tab10"
+
+    col_order = sorted(tmp[col].unique(), reverse=True)
+
+    #3
+    _plot_by_pseeds(tmp, y, row, col, hue, hue_order=hue_order,
+                    fn=fn, ylabel=(True, True),
+                    legend=True, toplegend=toplegend, yticklabels=True, kind="bar",
+                    logy=False, palette=palette, col_order=col_order)
+
+
+def plot_y_vs_pseeds_per_B_H_sampling(df, columns, y='rocauc', fn=None):
+    y = columns[y]
+    row = columns['H']
+    col = columns['B']
+    hue = columns['sampling']
 
     hue_order = []
     hue_list = df[hue].unique()
@@ -557,9 +697,7 @@ def plot_bias_vs_pseeds_per_B_H_sampling(df, columns, fn=None):
                     fn=fn, ylabel=(True, True),
                     legend=True, toplegend=toplegend, yticklabels=True, kind="bar",
                     logy=False, palette=palette, col_order=col_order)
-
-
-
+    
 ############################################################################################################
 # Setup / Handlers
 ############################################################################################################
@@ -638,7 +776,7 @@ def _plot_bars(x, y, **kwargs):
     logy = kwargs.pop("logy")
 
     #span = {'nodes': width * 0, 'neighbors': width * 1, 'nedges': width * 2, 'degree': width * 3, 'partialcrawls': width * 4}
-    span = {'nodes': width * 0, 'nedges': width * 1, 'degree': width * 2, 'partialcrawls': width * 3}
+    span = {'nodes': width * 0, 'edges': width * 1, 'degree': width * 2, 'partialcrawls': width * 3}
     sampling = data.sampling.unique()[0].replace("_", "").replace("\\", "")
     span = span[sampling]
 
@@ -667,10 +805,9 @@ def _plot_lines(x, y, **kwargs):
     ax.errorbar(means[x], means[y], yerr=errors, **kwargs)
 
 def _plot_scatter(x, y, **kwargs):
-
     ax = plt.gca()
     data = kwargs.pop("data")
-    ax.scatter(data[x], data[y], **kwargs)
+    plt.scatter(data[x], data[y], **kwargs)
 
 def _plot_by_pseeds(df, y, row, col, hue, hue_order, fn=None, ylabel=(True, True), legend=True, toplegend=False, yticklabels=True, kind="line", logy=False, palette=False, col_order=None, row_order=None, height=1.2, aspect=1.2):
     _plot_by(df, 'pseeds', y, row, col, hue,
@@ -715,18 +852,24 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     elif kind == 'line':
         fg = fg.map_dataframe(_plot_lines, x, y, marker='o', lw=1.0, alpha=1.0)
     elif kind == 'scatter':
-        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.5 if x in ['SE','bias'] else 1.0, vmin=0, vmax=1)
+        if 'vmin' not in kwargs:
+            vmin,vmax = 0.0,1.0
+        else:
+            vmin,vmax = kwargs['vmin'],kwargs['vmax']
+        vmin,vmax=None,None
+        fg = fg.map_dataframe(_plot_scatter, x, y, marker='o', lw=1.0, alpha=0.5 if x in ['SE','bias'] else 1.0, 
+                              vmin=vmin, vmax=vmax)
 
     x = unlatexfyme(x)
     y = unlatexfyme(y)
 
     for ax in fg.axes.flatten():
-
+                
         if baselines:
             if 'SE' in x or 'EE' in x:
                 ax.axvline(baseline[x[:2]], lw=1.0, ls='--', c='pink')
             if 'SE' in y or 'EE' in y:
-                ax.axhline(baseline[x[:2]], lw=1.0, ls='--', c='pink')
+                ax.axhline(baseline[y[:2]], lw=1.0, ls='--', c='pink')
             if 'bias' in x:
                 ax.axvline(baseline[x], lw=1.0, ls='--', c='pink')
 
@@ -736,7 +879,14 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
 
     if legend:
         if not toplegend:
+        
             fg.add_legend()
+            
+#             lp = lambda i: plt.plot([], color=cmap(norm(i)), marker="o", ls="", ms=10, alpha=0.5)[0]
+#             labels = np.arange(0,7.5,0.5)
+#             h = [lp(i) for i in labels]
+#             g.fig.legend(handles=h, labels=labels, fontsize=9)
+
             if hue=='SE':
                 new_title = r'$\sum SE$'
                 fg._legend.set_title(new_title)
@@ -781,7 +931,8 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
     try:
         if xlabel:
             if x == 'bias':
-                s = r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$"
+                #s = r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$"
+                s = r"${bias}=\frac{TPR_{min}}{TPR_{min}+TPR_{maj}}$"
                 if col is None:
                     fg.ax.set_xlabel(s=s,fontsize=13)
                 else:
@@ -814,7 +965,8 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
         if ylabel[0]:
 
             if y == 'bias':
-                fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(r"$bias=\frac{CC_{min}}{CC_{min}+CC_{maj}}$", fontsize=13)
+                s = r"${bias}=\frac{TPR_{min}}{TPR_{min}+TPR_{maj}}$"
+                fg.axes[int(round(tmp[row].nunique()/2,0))-1, 0].set_ylabel(s, fontsize=13)
             else:
                 if row is None:
                     fg.axes[0, 0].set_ylabel(y if y not in METRIC else METRIC[y])
@@ -856,6 +1008,122 @@ def _plot_by(df, x, y, row, col, hue, hue_order=None, fn=None, ylabel=(True,True
 
 
 
+####
+# new code:
+####
+
+def new_plot_estimation_errors_per_H_B_rocauc_sampling(data, columns, col, row, hue, x, y, sampling, ylabel=(True,True), legend=True, fn=None):
+    print(sampling)
+    rows = data[columns[row]].nunique()
+    cols = data[columns[col]].nunique()
+    if hue is not None:
+        palettes = {'SE':"RdYlGn_r", 'rocauc':"BrBG"}
+        vmin,vmax,nse = data[columns[hue]].min(), data[columns[hue]].max(), data[columns[hue]].nunique()
+        colorse = [sns.color_palette(palettes[hue], n_colors=nse),sorted(data[columns[hue]].unique().astype(str))]
+        colors = {se:c for c,se in zip(*colorse)}
+    else:
+        vmin,vmax,nse = None, None, None
+    xmin,xmax = data[columns[x]].min(), data[columns[x]].max()
+    ymin,ymax = data[columns[y]].min(), data[columns[y]].max()
+    xmid = (xmax+xmin)/2
+    ymid = (ymax+ymin)/2
+    
+    ### figure
+    plt.close()
+    fig,axes = plt.subplots(rows,cols,figsize=(3.5,3),sharex=True, sharey=True)
+
+    i = -1
+    n = 2
+    tmp = data.query("sampling==@sampling").copy()
+    
+    if hue:
+        tmp = tmp.sort_values([columns[row],columns[col],columns[hue]],ascending=[True,False,hue=='SE']).copy()
+    else:
+        tmp = tmp.sort_values([columns[row],columns[col]],ascending=[True,False]).copy()
+        
+    for _, df1 in tmp.groupby([row,col],sort=False):
+        i += 1
+        r = int(i/n)
+        c = i%n
+
+        if hue:            
+            for _, df2 in df1.groupby([columns[hue]], sort=True):  
+                sc = axes[r,c].scatter(df2[columns[x]], df2[columns[y]], 
+                                       c=colors[str(df2[columns[hue]].unique()[0])] if hue else None, 
+                                       s=35, alpha=0.5, 
+                                       vmin=vmin, vmax=vmax)
+        else:
+            sc = axes[r,c].scatter(df1[columns[x]], df1[columns[y]], 
+                                   s=35, alpha=0.5, 
+                                   vmin=vmin, vmax=vmax)
+        
+        if hue:
+            axes[r,c].text(x=xmid,y=ymid,s=r'$\overline{'+columns[hue]+'}'+'={}$'.format(round(df1[columns[hue]].mean(),2)), 
+                           fontsize=8, va='center', ha='center', 
+                           bbox=dict(facecolor='white', edgecolor='white', pad=1))
+
+        if r==0:
+            # columns
+            axes[r,c].set_title("{} = {}".format(columns[col], df1[columns[col]].unique()[0]))
+
+        if c==1 and ylabel[1]:
+            # y-label (right)
+            pos = xmax + (0.2 if x=='bias' else 0.07 if x=='SEcpSum' else 0.06 if x=='SE' else 0.05 if x=='SEcp00' else 0)
+            axes[r,c].text(x=pos, y=ymid, s="{} = {}".format(columns[row], df1[columns[row]].unique()[0]), 
+                           va='center', ha='center', rotation=-90)
+
+        ### right and top borders
+        axes[r,c].spines['right'].set_visible(False)
+        axes[r,c].spines['top'].set_visible(False)
+        
+        ### baselines
+        axes[r,c].axhline(0.5 if y in ['bias','rocauc'] else 0, c='pink', lw=1.0, ls='--')
+        axes[r,c].axvline(0.5 if x in ['bias','rocauc'] else 0, c='pink', lw=1.0, ls='--')
+        
+        ### x and y limits
+        smooth=0.1 if x in ['bias','rocauc'] else 0.03
+        axes[r,c].set_xlim((xmin-smooth,xmax+smooth))
+        smooth=0.1 if y in ['bias','rocauc'] else 0.03
+        axes[r,c].set_ylim((ymin-smooth,ymax+smooth))
+
+    ### unique legend for all:
+    if legend and hue:
+        handles=[Line2D([0], [0], marker='o', color=c, label=se, markersize=5, linestyle='', alpha=0.5) for c,se in zip(*colorse)]
+        steps = 2 if hue=='SE' else 1
+        hues = '{}-s'.format(hue)
+        title =  METRIC[hues] if hues in METRIC else METRIC[hue] if hue in METRIC else hue
+        pos = (1.15,2.2) if hue == 'SE' else (1.7,1.7) if hue == 'rocauc' else (0,0)
+        plt.legend(handles=handles[::steps], bbox_to_anchor=pos, 
+                   borderaxespad=0, frameon=False, title=title)
+        plt.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    ### y-labels left
+    if ylabel[0]:
+        ys = '{}-s'.format(y)
+        s =  METRIC[ys] if ys in METRIC else METRIC[y] if y in METRIC else y
+        pos = (-0.55,0.2) if x=='bias' else (-0.2,0.2) if x=='SE' else (-0.18,-0.05) if y=='SEp1' else (-0.12,-0.05) if x=='SEcp00' else (0,0) 
+        axes[0,0].text(x=pos[0], y=pos[1], s=s, rotation=90, va='center', ha='center', fontsize=13)
+
+    ### x-labels
+    xs = '{}-s'.format(x)
+    s =  METRIC[xs] if xs in METRIC else METRIC[x] if x in METRIC else x
+    pos = (-0.16,-0.2) if x=='bias' else (-0.02,-0.12) if x=='SEcpSum' else (-0.02,-0.15) if x=='SE' else (-0.03,-0.20) if x=='SEcp00' else (0,0) 
+    axes[1,1].text(x=pos[0], y=pos[1], s=s, rotation=0, va='center', ha='center', fontsize=13)
+
+    ### save figure
+    plt.subplots_adjust(hspace=0.05, wspace=0.05)
+    if fn is not None:
+        fn = fn.replace("\_",'')
+        plt.savefig(fn, bbox_inches='tight')
+        print("{} saved!".format(fn))
+
+    ### show
+    plt.show()
+    plt.close()
+    
+    
+    
+    
     # tmp = df.copy()
     #
     # evaluation = columns['bias']

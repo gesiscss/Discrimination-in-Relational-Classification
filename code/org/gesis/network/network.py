@@ -28,7 +28,7 @@ BARABASI_ALBERT_HOMOPHILY = "BAH"
 # Functions
 ############################################
 def _validate_params(**kwargs):
-    for param in ['density','H','Hmm','HMM']:
+    for param in ['density','H','Hmm','HMM','Hsym']:
         if param not in kwargs:
             kwargs[param] = None
     return kwargs
@@ -57,11 +57,14 @@ class Network(object):
 
         if self.kind == BARABASI_ALBERT_HOMOPHILY:
 
-            if kwargs['H'] is not None:
+            if kwargs['Hsym']: #if kwargs['H'] is not None:
+                print("SYMMETRIC:")
                 sym = True
                 self.G = BAHsym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], similitude=kwargs['H'], density=kwargs['density'])
-            elif kwargs['Hmm'] is not None and kwargs['HMM'] is not None:
-                self.G = BAHasym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], density=kwargs['density'], h_mM=1-kwargs['Hmm'], h_Mm=1-kwargs['HMM'])
+            else: #if kwargs['Hmm'] is not None and kwargs['HMM'] is not None:
+                print("A-SYMMETRIC:")
+                self.G = BAHasym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], density=kwargs['density'], 
+                                 h_mM=1-kwargs['Hmm'], h_Mm=1-kwargs['HMM'])
 
             h = get_similitude(self.G)
             b = get_minority_fraction(self.G)
@@ -141,6 +144,7 @@ class Network(object):
         self.G.graph['kind'] = self.kind
         self.G.graph['density'] = density
 
+        # getting params from filename
         for param in ['N','m','B','H','Hmm','HMM','i','x']:
             if param not in self.G.graph:
                 self.G.graph[param] = get_param(datafn, param)

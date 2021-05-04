@@ -93,10 +93,29 @@ def get_min_degree(graph):
 def get_density(graph):
     return nx.density(graph)
 
+
+def get_expected_N_E(density, m=2, E=1000, verbose=False):
+    N = np.sqrt(2*E/density)
+    enough = E >= m*N
+
+    if not enough:
+        N = ((2*m)/density)+1
+        
+    N = int(np.ceil(N))
+    E = (N*(N-1)/2)*density
+    E = int(np.ceil(E))
+    
+    if verbose:
+        print(N,E)
+        
+    return N, E
+
+
 def _get_global_estimates(index, row, cols, output):
 
     # BAH-N2000-m20-B0.3-H0.9-i3-x5-h0.9-k39.6-km36.5-kM40.9_nodes 11
     # Caltech36_nodes 1
+    # BAH-Caltech36-N701-m2-B0.33-H0.0-i1-x5-h0.5-k4.0-km5.0-kM3.5_nodes 12
     # BAH-Caltech36-N701-m2-B0.33-Hmm0.63-HMM0.44-i1-x5-h0.5-k4.0-km5.0-kM3.5_nodes 13
 
     if row['kind'] == 'empirical':
@@ -106,11 +125,15 @@ def _get_global_estimates(index, row, cols, output):
         # model
         files = glob.glob(output + '/{}*N{}*m{}*B{}*H{}*/P50_graph_1.gpickle'.format(row['kind'], row['N'], row['m'], row['B'],row['H']), recursive=True)
     else:
-        # fit
+        # fit assymetric
         files = glob.glob(output + '/{}-{}-N{}-m{}-B{}-Hmm{}-HMM{}-*/P50_graph_1.gpickle'.format(row['kind'], row['dataset'],row['N'],row['m'],row['B'],row['Hmm'],row['HMM']), recursive=True)
-
+        
+        # fit symmetric
+        if len(files) == 0:
+            files = glob.glob(output + '/{}-{}-N{}-m{}-B{}-H{}-*/P50_graph_1.gpickle'.format(row['kind'], row['dataset'],row['N'],row['m'],row['B'],row['H']), recursive=True)
+            
     if len(files) <= 0:
-        raise Exception('network does not exist: {}\n{}'.format(len(files), row))
+        raise Exception('network does not exist: {} {}\n{}'.format(index, len(files), row))
 
     p, cp = None, None
     for fn in files:
@@ -415,3 +438,13 @@ def estimate_homophily_BAH_empirical(graph, fm=None, EMM=None, EMm=None, EmM=Non
 
     best = np.argmin(diff)
     return hmm[best], hMM[best]
+
+def find_homophily_MLE(G, df):
+    fm = round(get_minority_fraction(G),2)
+    Emm, EmM, EMM, EMm = get_edge_type_counts(G, True)
+
+    tmp = df.query("fm==@fm").copy()
+    tmp.loc[:,'diff'] = tmp.apply(lambda row: abs(Emm-row.emm)+abs((EMm+EmM)-(row.eMm+row.emM))+abs(EMM-row.eMM), axis=1)
+    id = tmp['diff'].idxmin()
+    
+    return df.loc[id,'hmm'], df.loc[id,'hMM']

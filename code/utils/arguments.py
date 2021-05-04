@@ -55,7 +55,18 @@ def init_batch_create_network():
                         dest='fit',
                         default=None,
                         help='Empirical network file (.gpickle)')
-
+    
+    parser.add_argument('-evalues', action='store',
+                        dest='evalues',
+                        default=None,
+                        help='File containing homophily values based on E** (.csv)')
+    
+    parser.add_argument('-Hsym', action='store_true',
+                        dest='Hsym',
+                        default=True,
+                        required=True,
+                        help='Use symmetric homophily or not.')
+    
     parser.add_argument('-i', action='store',
                         dest='i',
                         type=int,
