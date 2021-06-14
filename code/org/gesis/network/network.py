@@ -28,7 +28,7 @@ BARABASI_ALBERT_HOMOPHILY = "BAH"
 # Functions
 ############################################
 def _validate_params(**kwargs):
-    for param in ['density','H','Hmm','HMM','Hsym']:
+    for param in ['density','H','Hmm','HMM']:
         if param not in kwargs:
             kwargs[param] = None
     return kwargs
@@ -57,15 +57,17 @@ class Network(object):
 
         if self.kind == BARABASI_ALBERT_HOMOPHILY:
 
-            if kwargs['Hsym']: #if kwargs['H'] is not None:
+            if kwargs['H'] is not None:
                 print("SYMMETRIC:")
                 sym = True
                 self.G = BAHsym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], similitude=kwargs['H'], density=kwargs['density'])
-            else: #if kwargs['Hmm'] is not None and kwargs['HMM'] is not None:
+            elif kwargs['Hmm'] is not None and kwargs['HMM'] is not None:
                 print("A-SYMMETRIC:")
                 self.G = BAHasym(N=kwargs['N'], m=kwargs['m'], minority_fraction=kwargs['B'], density=kwargs['density'], 
                                  h_mM=1-kwargs['Hmm'], h_Mm=1-kwargs['HMM'])
-
+            else:
+                raise Exception("homophily value is required.")
+                
             h = get_similitude(self.G)
             b = get_minority_fraction(self.G)
             k,km,kM = get_average_degrees(self.G)
