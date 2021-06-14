@@ -28,7 +28,7 @@ BARABASI_ALBERT_HOMOPHILY = "BAH"
 # Functions
 ############################################
 def _validate_params(**kwargs):
-    for param in ['density','H','Hmm','HMM']:
+    for param in ['density','H','Hmm','HMM','Hsym']:
         if param not in kwargs:
             kwargs[param] = None
     return kwargs

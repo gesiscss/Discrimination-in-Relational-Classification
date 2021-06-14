@@ -52,7 +52,7 @@ def run(params):
     print("")
     printf("*** Creating Network ***")
     net = Network(params.kind, fit)
-    net.create_network(N=N, m=m, B=B, density=density, H=H, Hmm=Hmm, HMM=HMM, i=params.i, x=params.x, Hsym=params.Hsym)
+    net.create_network(N=N, m=m, B=B, density=density, H=H, Hmm=Hmm, HMM=HMM, i=params.i, x=params.x)
     net.info()
     net.save(params.root)
 
