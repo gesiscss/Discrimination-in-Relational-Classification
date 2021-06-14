@@ -220,6 +220,8 @@ def plot_rocauc_vs_homophily_per_B_m_pseeds(df, columns, example=False, fn=None)
         fg._legend.set_title(new_title)
 
 
+    plt.ylim((0.5-0.20, 1.0+0.20))
+    
     plt.subplots_adjust(hspace=0.05, wspace=0.05)
 
     if fn is not None:
@@ -1023,6 +1025,7 @@ def new_plot_estimation_errors_per_H_B_rocauc_sampling(data, columns, col, row, 
         colors = {se:c for c,se in zip(*colorse)}
     else:
         vmin,vmax,nse = None, None, None
+
     xmin,xmax = data[columns[x]].min(), data[columns[x]].max()
     ymin,ymax = data[columns[y]].min(), data[columns[y]].max()
     xmid = (xmax+xmin)/2
@@ -1122,7 +1125,9 @@ def new_plot_estimation_errors_per_H_B_rocauc_sampling(data, columns, col, row, 
     plt.close()
     
     
-    
+###########################################################################################    
+# Some old code
+###########################################################################################
     
     # tmp = df.copy()
     #

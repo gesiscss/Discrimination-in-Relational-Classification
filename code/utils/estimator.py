@@ -192,11 +192,12 @@ def _get_global_estimates(index, row, cols, output):
 def get_global_estimates(df, LC, RC, output, njobs=1):
     from org.gesis.local.local import CLASS_PRIOR
     from org.gesis.relational.relational import NETWORK_ONLY_BAYES
+    from org.gesis.relational.relational import NETWORK_ONLY_LINK_BASED
 
     if LC != CLASS_PRIOR:
         raise Exception("LC {} does not exist.".format(LC))
 
-    if RC != NETWORK_ONLY_BAYES:
+    if RC not in [NETWORK_ONLY_BAYES,NETWORK_ONLY_LINK_BASED]:
         raise Exception("RC {} does not exist.".format(RC))
 
     cols = ['kind','dataset','N','m','density','B','H','Hmm','HMM','p0','p1','cp00','cp01','cp10','cp11']

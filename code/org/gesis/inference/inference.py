@@ -12,6 +12,7 @@ from joblib import Parallel, delayed
 # Local dependencies
 ############################################
 from org.gesis.inference.relaxation import Relaxation
+from org.gesis.inference.relaxationlink import RelaxationLINK
 from sklearn.metrics import auc
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import roc_auc_score
@@ -25,6 +26,7 @@ from utils.io import write_pickle
 # Constants
 ############################################
 RELAXATION = "relaxation"
+RELAXATIONLINK = "relaxationlink"
 
 
 ############################################
@@ -83,7 +85,12 @@ def _load_pickle_to_dataframe(fn, verbose=True):
 
     kind = foldername.split('-')[0] if nvars in [11,12,13] else 'empirical'
     dataset = foldername.split('-')[1] if nvars in [12,13] else '-' if nvars == 11 else foldername.split('_')[0]
-    h = float(obj['H']) if 'H' in obj and obj['H'] is not None else np.mean([float(obj['Hmm']),float(obj['HMM'])])
+
+    try:
+        h = float(obj['H']) if 'H' in obj and obj['H'] is not None else np.mean([float(obj['Hmm']),float(obj['HMM'])])
+    except Exception as ex:
+        h = float(foldername.split('-H')[-1].split('-i')[0])
+
 
     df = pd.DataFrame({'kind': kind,
                        'dataset':dataset,
@@ -92,8 +99,8 @@ def _load_pickle_to_dataframe(fn, verbose=True):
                        'density': float(obj['density']),
                        'B': float(obj['B']),
                        'H': h,
-                       'Hmm': float(obj['Hmm']) if 'Hmm' in obj else h,
-                       'HMM': float(obj['HMM']) if 'HMM' in obj else h,
+                       'Hmm': h if 'Hmm' not in obj or obj['Hmm'] is None else float(obj['Hmm']),
+                       'HMM': h if 'HMM' not in obj or obj['HMM'] is None else float(obj['HMM']),
                        'i': obj['i'] if obj['i'] is None else int(obj['i']),
                        'x': obj['x'] if obj['x'] is None else int(obj['x']),
                        'sampling': obj['sampling'],
@@ -183,6 +190,8 @@ class Inference(object):
         start_time = time.time()
         if self.method == RELAXATION:
             self.instance = Relaxation(self.G, local_model, relational_model)
+        elif self.method == RELAXATIONLINK:
+            self.instance = RelaxationLINK(self.G, local_model, relational_model)
         else:
             raise Exception("inference method does not exist: {}".format(self.method))
 
@@ -283,10 +292,16 @@ class Inference(object):
 
         obj['p0'] = self.instance.local_model.prior.iloc[0]
         obj['p1'] = self.instance.local_model.prior.iloc[1]
-        obj['cp00'] = self.instance.relational_model.condprob.iloc[0,0]
-        obj['cp01'] = self.instance.relational_model.condprob.iloc[0,1]
-        obj['cp11'] = self.instance.relational_model.condprob.iloc[1,1]
-        obj['cp10'] = self.instance.relational_model.condprob.iloc[1,0]
+        try:
+            obj['cp00'] = self.instance.relational_model.condprob.iloc[0,0]
+            obj['cp01'] = self.instance.relational_model.condprob.iloc[0,1]
+            obj['cp11'] = self.instance.relational_model.condprob.iloc[1,1]
+            obj['cp10'] = self.instance.relational_model.condprob.iloc[1,0]
+        except:
+            obj['cp00'] = None
+            obj['cp01'] = None
+            obj['cp11'] = None
+            obj['cp10'] = None
 
         obj['rocauc'] = self.rocauc
         obj['mae'] = self.mae

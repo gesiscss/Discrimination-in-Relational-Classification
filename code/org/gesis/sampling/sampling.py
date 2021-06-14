@@ -2,6 +2,7 @@
 # System dependencies
 ############################################
 import networkx as nx
+import numpy as np
 
 ############################################
 # Local dependencies
@@ -44,6 +45,9 @@ class Sampling(object):
         self.pseeds = pseeds
         self.epoch = epoch
         self.Gseeds = None
+        self.nodes = None
+        self.train_index = None
+        self.test_index = None
         
     def extract_subgraph(self, **kwargs):
         '''
@@ -102,6 +106,14 @@ class Sampling(object):
         del (self.Gseeds.graph['n'])
         del (self.Gseeds.graph['b'])
         del (self.Gseeds.graph['min_degree'])
+
+        # for LINK: working with matrices
+        self.nodes = list(self.G.nodes())
+        self.train_index = np.array([i for i,n in enumerate(self.nodes) if n in self.Gseeds])
+        self.test_nodes, self.test_index = zip(*[(n,i) for i,n in enumerate(self.nodes) if n not in self.Gseeds])
+        self.test_index = np.array(self.test_index)
+        self.feature_x = nx.adjacency_matrix(self.G, self.nodes).toarray()
+        self.membership_y = np.array([self.G.graph['labels'].index(self.G.node[n][self.G.graph['class']]) for n in self.nodes])
 
     def info(self):
         '''

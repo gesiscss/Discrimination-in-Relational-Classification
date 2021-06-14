@@ -60,7 +60,7 @@ class Relaxation(object):
         - n: ego node
         returns xi 
         '''
-        if self.G.node[n]['ci'].values[0] == self.G.node[n]['ci'].values[0]:
+        if abs(self.G.node[n]['ci'].values[0] - 0.5) < 0.1:
              return np.random.choice(a=self.G.graph['labels'], p=self.G.node[n]['ci'].values)
         return self.G.node[n]['ci'].idxmax()
 
