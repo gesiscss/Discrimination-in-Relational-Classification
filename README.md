@@ -18,7 +18,7 @@ Data-driven discrimination in relational classification
 
 ## Publications
 1.  **Explaining Classification Performance and Bias via Network Structure and Sampling Technique.**
-Lisette Espín-Noboa, Fariba Karimi, Bruno Ribeiro, Kristina Lerman and Claudia Wagner. Applied Network Science, 2021.
+Lisette Espín-Noboa, Fariba Karimi, Bruno Ribeiro, Kristina Lerman and Claudia Wagner. Applied Network Science, 2021. https://doi.org/10.1007/s41109-021-00394-3
 
 2.  **Towards Quantifying Sampling Bias in Network Inference.**
 Lisette Espín-Noboa, Claudia Wagner, Fariba Karimi and Kristina Lerman. In WWW '18 Companion: The 2018 Web Conference Companion, April 23–27, 2018, Lyon, France. ACM, New York, NY, USA, 9 pages. https://doi.org/10.1145/3184558.3191567
