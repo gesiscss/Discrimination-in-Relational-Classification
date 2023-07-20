@@ -5,7 +5,7 @@ powerlaw==1.4.6
 statsmodels==0.10.1
 pandas==0.24.2
 seaborn==0.9.1
-scipy==1.1.0
+scipy==1.10.0
 numpy==1.22.0
 matplotlib==3.0.3
 networkx==2.2
